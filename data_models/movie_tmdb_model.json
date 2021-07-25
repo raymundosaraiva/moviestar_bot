@@ -1,0 +1,16 @@
+{
+ "adult": False,
+ "backdrop_path": "/fev8UFNFFYsD5q7AcYS8LyTzqwl.jpg",
+ "genre_ids": [28, 35, 10751, 16, 12],
+ "id": 587807,
+ "original_language": "en",
+ "original_title": "Tom & Jerry",
+ "overview": "Tom the cat and Jerry the mouse get kicked out of their home and relocate to a fancy New York hotel, where a scrappy employee named Kayla will lose her job if she can’t evict Jerry before a high-class wedding at the hotel. Her solution? Hiring Tom to get rid of the pesky mouse.",
+ "popularity": 4878.816,
+ "poster_path": "/6KErczPBROQty7QoIsaa6wJYXZi.jpg",
+ "release_date": "2021-02-11",
+ "title": "Tom & Jerry",
+ "video": False,
+ "vote_average": 7.8,
+ "vote_count": 630
+}
