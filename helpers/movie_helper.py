@@ -9,8 +9,6 @@ imgURL = 'https://image.tmdb.org/t/p/'
 posterURL = f'{imgURL}w342'
 backdropURL = f'{imgURL}w300'
 
-GENRES = {'comédia': 35, 'ação': 28, 'terror': 27, 'ficção': 878}
-
 MOVIE_CARD_INDEXES = {'title',
                       'backdrop_path',
                       'overview',
@@ -40,10 +38,16 @@ def update_movie_info(movie):
 
 def get_movie_card_extra(movie):
     movie_id = movie.get('id')
-    backdrop = f'{backdropURL}{movie.get("backdrop_path")}'
-    trailer = get_trailer_url(movie_id) or backdrop
-    extra_data = {'detailsUrl': f"https://www.themoviedb.org/movie/{movie_id}?language={CONFIG.TMDB_LANGUAGE}",
-                  'trailerUrl': trailer}
+    backdrop = movie.get("backdrop_path")
+    poster = movie.get("poster_path")
+    trailer = get_trailer_url(movie_id)
+    extra_data = {'detailsUrl': f"https://www.themoviedb.org/movie/{movie_id}?language={CONFIG.TMDB_LANGUAGE}"}
+    if trailer:
+        extra_data['trailerUrl'] = trailer
+    if backdrop:
+        extra_data['backdropUrl'] = backdrop
+    if poster:
+        extra_data['posterUrl'] = poster
     return extra_data
 
 
@@ -51,11 +55,6 @@ def update_movie_image_path(movie):
     movie['backdrop_path'] = f"{backdropURL}{movie['backdrop_path']}"
     movie['poster_path'] = f"{posterURL}{movie['poster_path']}"
     return movie
-
-
-def get_genre_id(genre_name):
-    genre_id = GENRES.get(genre_name)
-    return genre_id
 
 
 def get_resource(movie_num, url='', page=1):
@@ -95,19 +94,6 @@ def get_now_playing_resources(page=1):
 
 def get_upcoming_resources(page=1):
     return get_movies_resource('', 'upcoming', page)
-
-
-def get_movies_from_genre(genre_name):
-    genre_id = get_genre_id(genre_name)
-    url = f"{CONFIG.TMDB_URL}discover/movie?api_key={CONFIG.TMDB_KEY}" \
-          f"&language={CONFIG.TMDB_LANGUAGE}&sort_by=popularity.desc&&page=1" \
-          f"&with_genres={str(genre_id)}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()['results']
-    else:
-        # TODO: Tratar erros
-        return None
 
 
 def get_trailer_url(movie_id):
@@ -157,9 +143,12 @@ def discover(genres, keywords, page=1):
 def movie_card(movie):
     if movie:
         movie_data = get_movie_card_data(movie)
-        movie_message = f"<a href='{movie_data.get('trailerUrl')}'>\U0001F3AC</a> " \
-                        f"{movie_data.get('title')} ({movie_data.get('release_date')})" \
-                        f"\n\n{movie_data.get('overview')}"
+        movie_message = f"\U0001F3AC<b>{movie_data.get('title')} ({movie_data.get('release_date')})</b>" \
+                        f"\n\n{movie_data.get('overview')} " \
+                        f"<a href='{movie_data.get('detailsUrl')}'>...Mais detalhes</a>" \
+                        f"\n\n<a href='{movie_data.get('posterUrl')}'>Acessar Poster</a>"
+        if movie_data.get('trailerUrl'):
+            movie_message += f"\n<a href='{movie_data.get('trailerUrl')}'>Acessar Trailer</a>"
         return movie_message
     else:
         return "Ops. Desculpe. Ocorreu um erro ao retorar o filme!"
@@ -167,11 +156,3 @@ def movie_card(movie):
 
 def get_code(resp):
     return resp.split('_', 1)[1]
-
-
-def get_en_keyword(pt):
-    translation = {'Guerra': 'war', 'Crime': 'crime', 'Futuro': 'future', 'Magia': 'magic',
-                   'Romântica': 'romance', 'Besteirol': 'fool', 'Conquista': 'seduction', 'Separação': 'break-up',
-                   'Super Herói': 'hero', 'Fantasma': 'ghost', 'Exorcismo': 'exorcism',
-                   'Espaço': 'space', 'Aliens': 'alien', 'Mostros': 'monster', 'Perseguição': 'pursuit'}
-    return translation.get(pt)

@@ -1,17 +1,18 @@
+import random
 from telegram.ext import CallbackContext
 from telegram import ParseMode
 
 from helpers.movie_helper import *
 from database import update_feedback_on_db
-
 from wrappers import send_typing_action
 from markups import *
 from helpers.keywords import keywords_list
 from bandit import Bandit, epsilon_greedy_agent, update_payoff
+from context_bandit import policy
+from helpers.features import Features
 
 # For Online Bandit Agent
-pay_offs = dict()
-epsilon, initial_rounds, decay = 0.2, 1, 0.999
+pay_offs, X_global, y_global, r_global = [], [], [], []
 
 
 def welcome(update):
@@ -34,21 +35,6 @@ def genre_buttons_edit(query):
         'Escolha um gênero abaixo',
         reply_markup=genre_markup
     )
-
-
-def feedback_answer(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    telegram_id = update.effective_user.id
-    movie_id = context.user_data.get('recommended').get('id')
-    movie_title = context.user_data.get('recommended').get('title')
-    source = context.user_data.get('recommended').get('source')
-    feedback = query.data
-    add_candidate_reward(movie_id, feedback)
-    update_feedback_on_db(telegram_id, source, movie_id, movie_title, feedback)
-    context.user_data['recommended'] = None
-    query.edit_message_text(text=f'\U0001F44D Obrigado por avaliar o filme: {movie_title}!',
-                            reply_markup=after_feedback_markup)
 
 
 def genre_answer(update: Update, context: CallbackContext):
@@ -79,7 +65,7 @@ def keyword_answer(update: Update, context: CallbackContext):
     genre = context.user_data.get('iterative').get('genre')
     telegram_id = update.effective_user.id
     context.user_data['candidates'] = None
-    candidates = {}
+    candidates = dict()
     for i in range(1, 3):
         for movie in discover(genre, keyword, i):
             candidates[movie.get('id')] = movie
@@ -88,22 +74,58 @@ def keyword_answer(update: Update, context: CallbackContext):
 
 
 def recommend_movie(telegram_id, query, context):
+    add_current_round(context)
     candidates = context.user_data.get('candidates')
+
     if len(candidates) < 1:
-        query.edit_message_text(text=f'\U0001F629 Desculpe! Não temos recommendações no momento. '
+        query.edit_message_text(text=f'\U0001F629 Desculpe! Não temos recommendações no momento.'
                                      f'\nDigite /filme para informar novos parâmetros.')
-    movie = get_candidate(candidates, context)
-    genre = context.user_data.get('iterative').get('genre')
+
+    genre_id = int(context.user_data.get('iterative').get('genre'))
     keyword = context.user_data.get('iterative').get('keyword')
-    query.edit_message_text(text=f'\U0001F50D Filme recomendado:\n\n{movie_card(movie)}',
-                            reply_markup=feedback_markup, parse_mode=ParseMode.HTML)
-    source = f'iterative_{genre}_{keyword}'
+    context_to_predict = Features(genre_id).get()
+    # TODO: Watched movies as context?
+    # TODO: UserId as context?
+    # TODO: Should we ask questions to be used
+    # TODO: Keep meaning for context actions features and rewards and just binarize them?
+    movie_bandit = get_candidate_from_context(candidates, context_to_predict)
+    label = list(candidates).index(movie_bandit.get('id'))
+
+    movie_baseline = get_candidate_from_baseline(candidates)
+
+    movie_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text=movie_bandit.get('title'), callback_data='selected_bandit')],
+        [InlineKeyboardButton(text=movie_baseline.get('title'), callback_data='selected_baseline')]
+    ])
+
+    query.edit_message_text(text=f'\U0001F50D Filmes recomendados:\n\n'
+                                 f'1 - {movie_card(movie_bandit)}\n\n\n'
+                                 f'2 - {movie_card(movie_baseline)}'
+                                 f'\n\n\n<b>Selecione a melhor recomendação:</b>\n',
+                            reply_markup=movie_markup, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
     # Remove the movie just recommended from candidates
-    candidates.pop(movie.get('id'))
-    update_feedback_on_db(telegram_id, source, movie.get('id'), movie.get('title'))
-    context.user_data['recommended'] = {'id': movie.get('id'),
-                                        'title': movie.get('title'),
-                                        'source': source}
+    candidates.pop(movie_bandit.get('id'))
+    # TODO: Should we remove both movies?
+
+    context.user_data['recommended'] = {'bandit': {'id': movie_bandit.get('id'),
+                                                   'context': context_to_predict,
+                                                   'labels': label},
+                                        'baseline': {'id': movie_baseline.get('id')}
+                                        }
+
+
+def feedback_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    feedback = query.data
+    telegram_id = update.effective_user.id
+    recommended = context.user_data.get('recommended')
+    add_candidate_reward(telegram_id, recommended, feedback)
+
+    context.user_data['recommended'] = None
+    query.edit_message_text(text=f'\U0001F44D Obrigado pela sua avaliação!',
+                            reply_markup=after_feedback_markup)
 
 
 def after_feedback_answer(update: Update, context: CallbackContext):
@@ -135,6 +157,18 @@ def add_current_round(context):
         context.user_data['round'] = {genre: {keyword: 1}}
 
 
+def get_candidate_from_context(candidates, context_to_predict):
+    actions = list(candidates)
+    action = policy(actions, context_to_predict, X_global, y_global, r_global)
+    return candidates[action]
+
+
+def get_candidate_from_baseline(candidates):
+    actions = list(candidates)
+    action = random.choice(actions)
+    return candidates[action]
+
+
 def get_candidate(candidates, context):
     current_round = get_current_round(context)
     bandit = Bandit(candidates.keys())
@@ -143,6 +177,12 @@ def get_candidate(candidates, context):
     return candidates[candidate]
 
 
-def add_candidate_reward(action, reward):
-    reward = 1 if 'feedback_liked' in reward else 0
-    update_payoff(pay_offs, action, reward)
+def add_candidate_reward(telegram_id, recommended, reward):
+    reward = int('selected_bandit' in reward)
+    action = recommended.get('bandit').get('id')
+    context = recommended.get('bandit').get('context')
+    labels = recommended.get('bandit').get('labels')
+    # pay_offs.append({'telegram_id': telegram_id, 'action': action, 'reward': reward})
+    X_global.append(context)
+    y_global.append(labels)
+    r_global.append(reward)
