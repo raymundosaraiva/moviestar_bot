@@ -4,7 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from contextualbandits.online import EpsilonGreedy
 
 
-def policy(actions, context_to_predict, context_features, context_actions, rewards):
+def policy(actions, context_to_predict, context_features, context_actions, rewards, exploit):
     n_choices = len(actions)
     np.random.seed(n_choices)
     # Turning logistic regression into contextual bandits policy
@@ -17,7 +17,7 @@ def policy(actions, context_to_predict, context_features, context_actions, rewar
     if context_features:
         epsilon_greedy.fit(X=np.array(context_features), a=np.array(context_actions), r=np.array(rewards))
     # choosing action
-    action = epsilon_greedy.predict(np.array([context_to_predict])).astype('uint8')
+    action = epsilon_greedy.predict(X=np.array([context_to_predict]), exploit=exploit).astype('uint8')
     return actions[int(action)]
 
 

@@ -8,7 +8,12 @@ feedback_markup = InlineKeyboardMarkup([
 
 after_feedback_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='Próximo', callback_data='recommend_next')],
-    [InlineKeyboardButton(text='Finalizar ', callback_data='recommend_end')],
+    [InlineKeyboardButton(text='Finalizar', callback_data='recommend_end')],
+])
+
+bandit_feedback_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='Manter Atual', callback_data='bandit_exploit')],
+    [InlineKeyboardButton(text='Explorar Novos', callback_data='bandit_explore')],
 ])
 
 similar_markup = InlineKeyboardMarkup([

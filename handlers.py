@@ -73,7 +73,7 @@ def keyword_answer(update: Update, context: CallbackContext):
     recommend_movie(telegram_id, query, context)
 
 
-def recommend_movie(telegram_id, query, context):
+def recommend_movie(telegram_id, query, context, exploit=False):
     add_current_round(context)
     candidates = context.user_data.get('candidates')
 
@@ -88,7 +88,7 @@ def recommend_movie(telegram_id, query, context):
     # TODO: UserId as context?
     # TODO: Should we ask questions to be used
     # TODO: Keep meaning for context actions features and rewards and just binarize them?
-    movie_bandit = get_candidate_from_context(candidates, context_to_predict)
+    movie_bandit = get_candidate_from_context(candidates, context_to_predict, exploit)
     label = list(candidates).index(movie_bandit.get('id'))
 
     movie_baseline = get_candidate_from_baseline(candidates)
@@ -132,10 +132,20 @@ def after_feedback_answer(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     if 'recommend_next' in query.data:
-        telegram_id = update.effective_user.id
-        recommend_movie(telegram_id, query, context)
+        query.edit_message_text(text=f'Está satisfeito com os filmes atuais ou deseja explorar novas opções?',
+                                reply_markup=bandit_feedback_markup)
     elif 'recommend_end' in query.data:
         genre_buttons_edit(query)
+
+
+def bandit_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    telegram_id = update.effective_user.id
+    if 'bandit_exploit' in query.data:
+        recommend_movie(telegram_id, query, context, exploit=True)
+    elif 'bandit_explore' in query.data:
+        recommend_movie(telegram_id, query, context, exploit=False)
 
 
 def get_current_round(context):
@@ -157,9 +167,9 @@ def add_current_round(context):
         context.user_data['round'] = {genre: {keyword: 1}}
 
 
-def get_candidate_from_context(candidates, context_to_predict):
+def get_candidate_from_context(candidates, context_to_predict, exploit):
     actions = list(candidates)
-    action = policy(actions, context_to_predict, X_global, y_global, r_global)
+    action = policy(actions, context_to_predict, X_global, y_global, r_global, exploit)
     return candidates[action]
 
 
