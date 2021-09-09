@@ -1,5 +1,5 @@
 from handlers import *
-from database import save_user_info, save_user_chat
+from database import save_user_info
 
 from wrappers import send_typing_action
 

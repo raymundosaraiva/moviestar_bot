@@ -134,10 +134,26 @@ def discover(genres, keywords, page=1):
     # genre and keyword IDs, comma separated
     url = f"{CONFIG.TMDB_URL}discover/movie?api_key={CONFIG.TMDB_KEY}&page={str(page)}" \
           f"&language={CONFIG.TMDB_LANGUAGE}&sort_by=popularity.desc" \
-          f"&with_genres={genres}&with_keywords={keywords}"
+          f"&with_genres={genres}"
+    url += f"&with_keywords={keywords}" if keywords else ""
     response = requests.get(url).json()['results']
     # TODO: Handle errors
     return response
+
+
+def add_candidates(genre, keywords, candidates, index):
+    # TODO: If short than 10 get more movies, if not show we do not have options
+    for movie in discover(genre, keywords, index):
+        candidates[movie.get('id')] = movie
+
+
+def get_n_candidates(context, genre, keyword, n):
+    candidates = dict()
+    # TODO: If short than 10 get more movies, if not show we do not have options
+    for index in range(1, n + 1):
+        add_candidates(genre, keyword, candidates, index)
+        context.user_data['next_index'] = index + 1
+    return candidates
 
 
 def movie_card(movie):

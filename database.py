@@ -1,70 +1,101 @@
-import requests
-from requests.exceptions import HTTPError, ConnectionError
 from bot import CONFIG
+import datetime
+from pymongo import MongoClient
+
+client = MongoClient()
+db = client.movie_star
 
 
 def save_user_info(telegram_id, name, username):
     if not CONFIG.DB_SAVE:
         return True
-    try:
-        response = requests.get(url=f'{CONFIG.DB_HOST}/telegram_user_info',
-                                params={'telegram_id': telegram_id,
-                                        'name': name,
-                                        'username': username})
-        if response.status_code < 300:
-            print(f'Success on save_user_info() [{telegram_id}]')
-            return response
-        else:
-            print(f'Error<{response.status_code}> on save_user_info() [{telegram_id}] - {response.reason}')
-    except HTTPError as error:
-        print(f'On save_user_info() [{telegram_id}] - HTTP error occurred: {error}')
-    except ConnectionError as error:
-        print(f'On save_user_info() [{telegram_id}] - CONNECTION ERROR error occurred: {error}')
+
+    users = db.users
+    if users.find_one({'telegram_id': telegram_id}):
+        query = {'telegram_id': telegram_id}
+        last_access = {'$set': {'last_access': datetime.datetime.utcnow()}}
+        users.update_one(query, last_access)
+        return True
     else:
-        print(f'ERROR on save_user_info() [{telegram_id}]')
+        user = {'telegram_id': telegram_id,
+                'name': name,
+                'username': username,
+                'created': datetime.datetime.utcnow()}
+        users.insert_one(user)
+        return True
 
 
-def save_user_chat(telegram_id, user_input, wit_output, bot_output, feedback=''):
+def save_experiment(experiment):
     if not CONFIG.DB_SAVE:
         return True
-    try:
-        response = requests.get(url=f'{CONFIG.DB_HOST}/telegram_chat_history',
-                                params={'telegram_id': telegram_id,
-                                        'user_input': user_input,
-                                        'wit_output': wit_output,
-                                        'bot_output': bot_output,
-                                        'feedback': feedback})
-        if response.status_code < 300:
-            print(f'Success on save_user_chat() [{telegram_id}]')
-            return response
-        else:
-            print(f'Error<{response.status_code}> on save_user_chat() [{telegram_id}] - {response.reason}')
-    except HTTPError as error:
-        print(f'On save_user_chat() [{telegram_id}] - HTTP error occurred: {error}')
-    except ConnectionError as error:
-        print(f'On save_user_chat() [{telegram_id}] - CONNECTION ERROR error occurred: {error}')
-    else:
-        print(f'ERROR on save_user_chat() [{telegram_id}]')
+
+    experiments = db.experiments
+    experiment['created'] = datetime.datetime.utcnow()
+    experiments.insert_one(experiment)
+    return True
 
 
-def update_feedback_on_db(telegram_id, source, movie_id, movie_title='', feedback=''):
+def save_recommended(bandit_id, baseline_id, telegram_id):
     if not CONFIG.DB_SAVE:
         return True
-    try:
-        response = requests.get(url=f'{CONFIG.DB_HOST}/update_recommendation',
-                                params={'telegram_id': telegram_id,
-                                        'source': source,
-                                        'movie_id': movie_id,
-                                        'movie_title': movie_title,
-                                        'feedback': feedback})
-        if response.status_code < 300:
-            print(f'Success on update_feedback() [{telegram_id}]')
-            return response
-        else:
-            print(f'Error<{response.status_code}> on update_feedback() [{telegram_id}] - {response.reason}')
-    except HTTPError as error:
-        print(f'On update_feedback() [{telegram_id}] - HTTP error occurred: {error}')
-    except ConnectionError as error:
-        print(f'On update_feedback() [{telegram_id}] - CONNECTION ERROR error occurred: {error}')
-    else:
-        print(f'ERROR on update_feedback() [{telegram_id}]')
+
+    users = db.users
+    users.find_one_and_update({'telegram_id': telegram_id},
+                              {'$addToSet': {'recommended': {'$each': [bandit_id, baseline_id]}}}
+                              )
+    return True
+
+
+def get_recommended(telegram_id):
+    users = db.users
+    recommended = users.find_one({'telegram_id': telegram_id}).get('recommended')
+    return recommended
+
+
+def save_selected(telegram_id, movie_id):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    users = db.users
+    users.find_one_and_update({'telegram_id': telegram_id},
+                              {'$addToSet': {'selected': movie_id}}
+                              )
+    return True
+
+
+def get_context_ids(telegram_id):
+    users = db.users
+    return users.find_one({'telegram_id': telegram_id}).get('selected')
+
+
+def binarize_context(context_ids):
+    rounds = db.rounds
+    selected_all = [_round.get('selected') for _round in rounds.find()]
+    context = [1 if i in context_ids else 0 for i in selected_all]
+    return context
+
+
+def get_all_context_binarized(candidates):
+    rounds = db.rounds
+    X, y, r = [], [], []
+    for _round in rounds.find():
+        if _round.get('selected') in candidates:
+            X.append(binarize_context(_round.get('context')))
+            y.append(candidates.index(_round.get('selected')))
+            r.append(_round.get('reward'))
+    return X, y, r
+
+
+def save_round(telegram_id, context, actions, selected, reward):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    rounds = db.rounds
+    this_round = {'telegram_id': telegram_id,
+                  'context': context,
+                  'actions': actions,
+                  'selected': selected,
+                  'reward': reward
+                  }
+    rounds.insert_one(this_round)
+    return True

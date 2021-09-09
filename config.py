@@ -20,8 +20,8 @@ class DefaultConfig:
     TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "pt-BR")
 
     # DB API
-    DB_HOST = os.environ.get("DB_HOST", "http://localhost:8000")
-    DB_SAVE = os.environ.get("DB_SAVE", False)
+    DB_HOST = os.environ.get("DB_HOST", "localhost:27017")
+    DB_SAVE = os.environ.get("DB_SAVE", True)
 
 
 
