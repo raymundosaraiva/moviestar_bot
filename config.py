@@ -20,7 +20,7 @@ class DefaultConfig:
     TMDB_LANGUAGE = os.environ.get("TMDB_LANGUAGE", "pt-BR")
 
     # DB API
-    DB_HOST = os.environ.get("DB_HOST", "localhost:27017")
+    DB_HOST = os.environ.get("MONGODB_URI", "localhost:27017")
     DB_SAVE = os.environ.get("DB_SAVE", True)
 
 

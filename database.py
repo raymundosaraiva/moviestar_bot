@@ -2,7 +2,7 @@ from bot import CONFIG
 import datetime
 from pymongo import MongoClient
 
-client = MongoClient()
+client = MongoClient(CONFIG.DB_HOST)
 db = client.movie_star
 
 
