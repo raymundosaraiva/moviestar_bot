@@ -110,14 +110,14 @@ def genre_answer(update: Update, context: CallbackContext):
     genre_code = get_code(query.data)
     context.user_data['iterative'] = None
     context.user_data['iterative'] = {'genre': genre_code}
-    keyword_markup, markup_line, line_count = [], [], 1
+    keyword_markup, markup_line = [], []
     for keyword, code in keywords_list.get(genre_code).items():
-        if line_count <= 2:
-            markup_line.append(InlineKeyboardButton(keyword, callback_data=f'keyword_{code}'))
-            line_count += 1
-        else:
+        markup_line.append(InlineKeyboardButton(keyword, callback_data=f'keyword_{code}'))
+        if (len(markup_line) % 2) == 0:
             keyword_markup.append(markup_line)
-            markup_line, line_count = [], 1
+            markup_line = []
+    if len(markup_line) > 0:
+        markup_line.append(InlineKeyboardButton(keyword, callback_data=f'keyword_{code}'))
     keyword_markup.append([InlineKeyboardButton('Qualquer tipo', callback_data='keyword_any')])
     query.edit_message_text(text=f"Escolha o que mais te interessa:",
                             reply_markup=InlineKeyboardMarkup(keyword_markup))
@@ -161,7 +161,7 @@ def recommend_movie(telegram_id, query, context, exploit=False):
 
     query.edit_message_text(text=f'{movie_card(movie_bandit)}'
                                  f'\n\n\n<b>Avalie a recomendação:</b>\n',
-                            reply_markup=feedback_markup, parse_mode=ParseMode.HTML)
+                            reply_markup=feedback_markup, parse_mode=ParseMode.HTML, disable_web_page_preview=False)
 
     context.user_data['recommended'] = {'id': movie_bandit.get('id'),
                                         'title': movie_bandit.get('title'),
@@ -215,7 +215,7 @@ def after_feedback_answer(update: Update, context: CallbackContext):
         negative_feedback_count = context.user_data.get('negative_feedback') or 0
         # Ask if user give n negative feedback
         if negative_feedback_count >= CONFIG.BANDIT_NEGATIVE_FEEDBACK:
-            query.edit_message_text(text=f'Está satisfeito com os filmes atuais ou deseja explorar novas opções?',
+            query.edit_message_text(text=f'Quer manter o padrão de recomendação atual ou deseja explorar novas opções?',
                                     reply_markup=bandit_feedback_markup)
             context.user_data['negative_feedback'] = 0
         else:

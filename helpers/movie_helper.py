@@ -21,12 +21,13 @@ LANGUAGES = ((1, 'en-US'), (2, 'pt-BR'),)
 
 BANDIT_N_LIST = CONFIG.BANDIT_NEGATIVE_FEEDBACK
 
+
 def movie_card(movie):
     if movie:
         movie_data = get_movie_card_data(movie)
         movie_message = f"\U0001F3AC<b>{movie_data.get('title')} ({movie_data.get('release_date')})</b>" \
                         f"\n\n{movie_data.get('overview')} " \
-                        f"<a href='{movie_data.get('detailsUrl')}'>...Mais detalhes</a>" \
+                        f"\n\n<a href='{movie_data.get('detailsUrl')}'>Acessar Página do Filme</a>" \
                         f"\n\n<a href='{movie_data.get('posterUrl')}'>Acessar Poster</a>"
         if movie_data.get('trailerUrl'):
             movie_message += f"\n<a href='{movie_data.get('trailerUrl')}'>Acessar Trailer</a>"

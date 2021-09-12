@@ -120,7 +120,6 @@ keywords_list = {
     "Assassinato": 9826,
     "Polícia": 6149,
     "Seqüestro": 1930,
-    "Final surpresa": 282453,
     "Tortura": 13006,
     "Traição": 10085,
     "Detetive": 703,
