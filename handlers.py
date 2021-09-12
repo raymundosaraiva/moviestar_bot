@@ -14,24 +14,94 @@ from database import *
 
 def welcome(update):
     update.message.reply_text(
-        'Bem vindo ao \U0001F3AC MovieStar! '
-        '\n\nEscolha um gênero abaixo',
-        reply_markup=genre_markup
+        '\U0001F3AC Bem vindo!'
+        '\n\nEste é um experimento controlado.'
+        '\n\nDesenvolvido para um projeto de mestrado da USP '
+        'com o intuito de avaliar um modelo de recomendação de filmes em tempo real.'
+        '\n\n Os seus dados não serão expostos e tem uso apenas nesta pesquisa.'
+        '\n\n Ao selecionar a opção "Desejo participar" você concorda com os nossos termos e deve:'
+        '\n  - Informar seu sexo e faixa etária;'
+        '\n  - Receber no mínimo 5 recomendações;'
+        '\n  - Avaliar todas as recomendações;'
+        '\n  - Responder sobre a sua satisfação final.;'
+        '\n\n Obrigado desde já pela participação',
+        reply_markup=consent_markup, parse_mode=ParseMode.HTML
     )
 
 
-def genre_buttons_reply(update):
-    update.message.reply_text(
-        'Escolha um gênero abaixo',
-        reply_markup=genre_markup
-    )
+def genre_buttons_edit(option, reply=False):
+    if reply:
+        option.edit_message_text(
+            'Escolha um gênero abaixo',
+            reply_markup=genre_markup
+        )
+    else:
+        option.message.reply_text(
+            'Escolha um gênero abaixo',
+            reply_markup=genre_markup
+        )
 
 
-def genre_buttons_edit(query):
-    query.edit_message_text(
-        'Escolha um gênero abaixo',
-        reply_markup=genre_markup
-    )
+def age_buttons_edit(option, reply=False):
+    if reply:
+        option.edit_message_text(
+            'Qual a sua faixa etária?',
+            reply_markup=age_markup
+        )
+    else:
+        option.message.reply_text(
+            'Qual a sua faixa etária?',
+            reply_markup=age_markup
+        )
+
+
+def sex_buttons_edit(option, reply=False):
+    if reply:
+        option.edit_message_text(
+            'Qual o seu sexo?',
+            reply_markup=sex_markup
+        )
+    else:
+        option.message.reply_text(
+            'Qual o seu sexo?',
+            reply_markup=sex_markup
+        )
+
+
+def consent_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    consent_code = get_code(query.data)
+    telegram_id = update.effective_user.id
+    save_user_info(telegram_id, 'consent', consent_code)
+    if consent_code == 'agree':
+        sex_buttons_edit(query, True)
+    else:
+        update.message.reply_text(
+            ':( Entendemos que você não concorda em participar no momento.'
+            '\nCaso mude de ideia basta digitar /start'
+        )
+
+
+def sex_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    sex_code = get_code(query.data)
+    telegram_id = update.effective_user.id
+    save_user_info(telegram_id, 'sex', sex_code)
+    if not user_has_info(telegram_id, 'age'):
+        age_buttons_edit(query, True)
+    else:
+        genre_buttons_edit(query, True)
+
+
+def age_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    age_code = get_code(query.data)
+    telegram_id = update.effective_user.id
+    save_user_info(telegram_id, 'age', age_code)
+    genre_buttons_edit(query, True)
 
 
 def genre_answer(update: Update, context: CallbackContext):
@@ -62,7 +132,7 @@ def keyword_answer(update: Update, context: CallbackContext):
     genre = context.user_data.get('iterative').get('genre')
     telegram_id = update.effective_user.id
     context.user_data['candidates'] = None
-    context.user_data['candidates'] = get_n_candidates(context, genre, keyword, 3)
+    context.user_data['candidates'] = get_n_candidates(context, genre, keyword)
     recommend_movie(telegram_id, query, context)
 
 
@@ -73,8 +143,6 @@ def remove_recommended(telegram_id, candidates):
 
 
 def recommend_movie(telegram_id, query, context, exploit=False):
-    add_current_round(context)
-
     candidates = context.user_data.get('candidates')
     remove_recommended(telegram_id, candidates)
     # TODO: If candidates < n discover more candidates
@@ -86,31 +154,20 @@ def recommend_movie(telegram_id, query, context, exploit=False):
 
     context_ids = get_context_ids(telegram_id)
     context_binarized = binarize_context(context_ids)
-    context.user_data['context_to_predict'] = get_context_ids(telegram_id)
+    context.user_data['context_to_predict'] = context_ids
 
-    movie_bandit = get_candidate_from_context(candidates, context_binarized, exploit)
+    movie_bandit, state = get_candidate_from_context(candidates, context_binarized, exploit)
     label = candidates_id.index(movie_bandit.get('id'))
 
-    movie_baseline = get_candidate_from_baseline(candidates)
-    while movie_baseline.get('id') == movie_bandit.get('id'):
-        movie_baseline = get_candidate_from_baseline(candidates)
+    query.edit_message_text(text=f'{movie_card(movie_bandit)}'
+                                 f'\n\n\n<b>Avalie a recomendação:</b>\n',
+                            reply_markup=feedback_markup, parse_mode=ParseMode.HTML)
 
-    movie_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton(text=movie_bandit.get('title'), callback_data='selected_bandit')],
-        [InlineKeyboardButton(text=movie_baseline.get('title'), callback_data='selected_baseline')]
-    ])
-
-    query.edit_message_text(text=f'\U0001F50D Filmes recomendados:\n\n'
-                                 f'1 - {movie_card(movie_bandit)}\n\n\n'
-                                 f'2 - {movie_card(movie_baseline)}'
-                                 f'\n\n\n<b>Selecione a melhor recomendação:</b>\n',
-                            reply_markup=movie_markup, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-
-    context.user_data['recommended'] = {'bandit': {'id': movie_bandit.get('id'),
-                                                   'context': context_ids,
-                                                   'labels': label},
-                                        'baseline': {'id': movie_baseline.get('id')}
-                                        }
+    context.user_data['recommended'] = {'id': movie_bandit.get('id'),
+                                        'title': movie_bandit.get('title'),
+                                        'context': context_ids,
+                                        'state': state,
+                                        'labels': label}
 
 
 def feedback_answer(update: Update, context: CallbackContext):
@@ -119,39 +176,65 @@ def feedback_answer(update: Update, context: CallbackContext):
     feedback = query.data
     telegram_id = update.effective_user.id
     recommended = context.user_data.get('recommended')
-    reward = int('selected_bandit' in feedback)
+    reward = int('feedback_liked' in feedback)
+    if not reward:
+        count_negative_feedback(context)
     candidates = list(context.user_data.get('candidates'))
     context_to_predict = context.user_data.get('context_to_predict') or []
 
     # Experiment result to save on DB
-    movie_bandit_id = recommended['bandit']['id']
-    movie_baseline_id = recommended['baseline']['id']
-    selected_movie_id = movie_bandit_id if reward else movie_baseline_id
-    experiment = {'bandit': movie_bandit_id,
-                  'baseline': movie_baseline_id,
-                  'selected': get_code(feedback),
+    movie_id = recommended['id']
+    movie_title = recommended['title']
+    state = recommended['state']
+    genre_id = context.user_data.get('iterative').get('genre')
+    keyword_id = context.user_data.get('iterative').get('keyword')
+    experiment = {'genre': genre_id,
+                  'keyword': keyword_id,
+                  'movie_id': movie_id,
+                  'movie_title': movie_title,
+                  'feedback': get_code(feedback),
+                  'state': state,
                   'user': telegram_id
                   }
     save_experiment(experiment)
-    save_recommended(movie_bandit_id, movie_baseline_id, telegram_id)
-    save_round(telegram_id, context_to_predict, candidates, movie_bandit_id, reward)
-    save_selected(telegram_id, selected_movie_id)
+    save_round(telegram_id, context_to_predict, candidates, movie_id, reward)
+    update_user_column_array(telegram_id, movie_id, 'recommended')
+    update_user_column_array(telegram_id, movie_id, 'selected' if reward else 'not_selected')
 
-    print(f'# REC > {update.effective_user.first_name}[{telegram_id}] > SELECTED[{get_code(feedback)}] > ID[{selected_movie_id}]')
+    print(f'#REC > {update.effective_user.first_name}[{telegram_id}] > {movie_title}[{movie_id}] {get_code(feedback)}')
 
     context.user_data['recommended'] = None
-    query.edit_message_text(text=f'\U0001F44D Obrigado pela sua avaliação!',
-                            reply_markup=after_feedback_markup)
+    query.message.reply_text(text=f'\U0001F603 Obrigado pela sua avaliação!',
+                             reply_markup=after_feedback_markup)
 
 
 def after_feedback_answer(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     if 'recommend_next' in query.data:
-        query.edit_message_text(text=f'Está satisfeito com os filmes atuais ou deseja explorar novas opções?',
-                                reply_markup=bandit_feedback_markup)
+        negative_feedback_count = context.user_data.get('negative_feedback') or 0
+        # Ask if user give n negative feedback
+        if negative_feedback_count >= CONFIG.BANDIT_NEGATIVE_FEEDBACK:
+            query.edit_message_text(text=f'Está satisfeito com os filmes atuais ou deseja explorar novas opções?',
+                                    reply_markup=bandit_feedback_markup)
+            context.user_data['negative_feedback'] = 0
+        else:
+            context.user_data['negative_feedback'] = 0
+            telegram_id = update.effective_user.id
+            recommend_movie(telegram_id, query, context)
+    elif 'recommend_param' in query.data:
+        genre_buttons_edit(query, True)
     elif 'recommend_end' in query.data:
-        genre_buttons_edit(query)
+        query.edit_message_text(
+            'Como você avalia as recomendações que tem recebido?',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton('Estou Muito Satisfeito', callback_data='final_5')],
+                [InlineKeyboardButton('Estou Satisfeito', callback_data='final_4')],
+                [InlineKeyboardButton('Estou Pouco Satisfeito', callback_data='final_3')],
+                [InlineKeyboardButton('Estou Insatisfeito', callback_data='final_2')],
+                [InlineKeyboardButton('Estou Muito Insatisfeito', callback_data='final_1')]
+            ])
+        )
 
 
 def bandit_answer(update: Update, context: CallbackContext):
@@ -162,12 +245,21 @@ def bandit_answer(update: Update, context: CallbackContext):
     keyword = context.user_data.get('iterative').get('keyword')
     if 'bandit_exploit' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_n_candidates(context, genre_id, keyword, 3)
+        context.user_data['candidates'] = get_n_candidates(context, genre_id, keyword)
         recommend_movie(telegram_id, query, context, exploit=True)
     elif 'bandit_explore' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_n_candidates(context, genre_id, None, 3)
+        context.user_data['candidates'] = get_n_candidates(context, genre_id, None)
         recommend_movie(telegram_id, query, context, exploit=False)
+
+
+def final_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    telegram_id = update.effective_user.id
+    code = int(get_code(query.data))
+    print(f'[{telegram_id}] Final response > {code}')
+    query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
 
 
 def get_current_round(context):
@@ -193,10 +285,18 @@ def get_candidate_from_context(candidates, context_to_predict, exploit):
     actions = list(candidates)
     X_context, y_context, r_context = get_all_context_binarized(actions)
     action = policy(actions, context_to_predict, X_context, y_context, r_context, exploit)
-    return candidates[action]
+    state = 'no_context' if not X_context else ('exploit' if exploit else 'explore')
+    return candidates[action], state
 
 
 def get_candidate_from_baseline(candidates):
     actions = list(candidates)
     action = random.choice(actions)
     return candidates[action]
+
+
+def count_negative_feedback(context):
+    if context.user_data.get('negative_feedback'):
+        context.user_data['negative_feedback'] += 1
+    else:
+        context.user_data['negative_feedback'] = 1

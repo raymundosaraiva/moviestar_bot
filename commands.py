@@ -1,5 +1,5 @@
 from handlers import *
-from database import save_user_info
+from database import *
 
 from wrappers import send_typing_action
 
@@ -9,15 +9,18 @@ from wrappers import send_typing_action
 @send_typing_action
 def start(update, _: CallbackContext):
     """Send a message when the command /start is issued."""
-    user_id, name, username = update.effective_user.id, update.effective_user.first_name, update.effective_user.name
-    if user_id and name:
-        if save_user_info(user_id, name, username):
-            welcome(update)
+    telegram_id, name, username = update.effective_user.id, update.effective_user.first_name, update.effective_user.name
+    if has_user(telegram_id):
+        update_user_last_access(telegram_id)
+        if not user_has_info(telegram_id, 'sex'):
+            sex_buttons_edit(update)
+        elif not user_has_info(telegram_id, 'age'):
+            age_buttons_edit(update)
         else:
-            update.message.reply_text('Erro ao salvar dados! Digite /help para ajuda')
+            genre_buttons_edit(update)
     else:
-        print('Error: Missing user Data!')
-        update.message.reply_text('Erro ao carregar dados! Digite /help para ajuda')
+        create_user(telegram_id, name, username)
+        welcome(update)
 
 
 @send_typing_action
@@ -27,11 +30,5 @@ def help(update, context):
 
 
 @send_typing_action
-def filme(update, context):
-    """Send a message when the command /filme is issued."""
-    genre_buttons_reply(update)
-
-
-@send_typing_action
 def text(update, context):
-    genre_buttons_reply(update)
+    genre_buttons_edit(update, True)

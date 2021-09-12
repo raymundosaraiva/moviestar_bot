@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def error(update, context):
+    telegram_id, name = update.effective_user.id, update.effective_user.first_name,
     """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    logger.warning('Update on user %s caused error "%s"', telegram_id, context.error)
+    save_error(telegram_id, context.error)
 
 
 def connect_to_telegram():
@@ -37,15 +39,18 @@ def connect_to_telegram():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("filme", filme))
     dp.add_handler(CommandHandler("help", help))
 
     # CallbackQuery Handlers
+    dp.add_handler(CallbackQueryHandler(consent_answer, pattern='consent_*'))
+    dp.add_handler(CallbackQueryHandler(sex_answer, pattern='sex_*'))
+    dp.add_handler(CallbackQueryHandler(age_answer, pattern='age_*'))
     dp.add_handler(CallbackQueryHandler(genre_answer, pattern='genre_*'))
     dp.add_handler(CallbackQueryHandler(keyword_answer, pattern='keyword_*'))
-    dp.add_handler(CallbackQueryHandler(feedback_answer, pattern='selected_*'))
+    dp.add_handler(CallbackQueryHandler(feedback_answer, pattern='feedback_*'))
     dp.add_handler(CallbackQueryHandler(after_feedback_answer, pattern='recommend_*'))
     dp.add_handler(CallbackQueryHandler(bandit_answer, pattern='bandit_*'))
+    dp.add_handler(CallbackQueryHandler(final_answer, pattern='final_*'))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, text))

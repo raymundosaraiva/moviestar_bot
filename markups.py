@@ -1,6 +1,11 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 
 
+consent_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='\U0001F44D Desejo participar', callback_data='consent_agree'),
+     InlineKeyboardButton(text='\U0001F44E Não tenho interesse', callback_data='consent_disagree')]
+])
+
 feedback_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='\U0001F44D Gostei', callback_data='feedback_liked'),
      InlineKeyboardButton(text='\U0001F44E Não Gostei', callback_data='feedback_disliked')]
@@ -8,6 +13,7 @@ feedback_markup = InlineKeyboardMarkup([
 
 after_feedback_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='Próximo', callback_data='recommend_next')],
+    [InlineKeyboardButton(text='Mudar Parâmetros', callback_data='recommend_param')],
     [InlineKeyboardButton(text='Finalizar', callback_data='recommend_end')],
 ])
 
@@ -30,4 +36,20 @@ genre_markup = InlineKeyboardMarkup([
      InlineKeyboardButton('Terror', callback_data='genre_27')],
     [InlineKeyboardButton('Ficção', callback_data='genre_878'),
      InlineKeyboardButton('Suspense', callback_data='genre_53')]
+])
+
+sex_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='Masculino', callback_data='sex_masculine')],
+    [InlineKeyboardButton(text='Feminino', callback_data='sex_feminine')],
+    [InlineKeyboardButton(text='Outro', callback_data='sex_other')],
+    [InlineKeyboardButton(text='Prefiro não dizer', callback_data='sex_na')]
+])
+
+age_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='Até 17 anos', callback_data='age_1')],
+    [InlineKeyboardButton(text='18 até 24 anos', callback_data='age_2')],
+    [InlineKeyboardButton(text='25 até 34 anos', callback_data='age_3')],
+    [InlineKeyboardButton(text='35 até 44 anos', callback_data='age_4')],
+    [InlineKeyboardButton(text='45 até 59 anos', callback_data='age_5')],
+    [InlineKeyboardButton(text='60 anos e acima', callback_data='age_6')]
 ])

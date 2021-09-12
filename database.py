@@ -6,7 +6,15 @@ client = MongoClient(CONFIG.DB_HOST)
 db = client.movie_star
 
 
-def save_user_info(telegram_id, name, username):
+def has_user(telegram_id):
+    users = db.users
+    if users.find_one({'telegram_id': telegram_id}):
+        return True
+    else:
+        return False
+
+
+def update_user_last_access(telegram_id):
     if not CONFIG.DB_SAVE:
         return True
 
@@ -16,13 +24,38 @@ def save_user_info(telegram_id, name, username):
         last_access = {'$set': {'last_access': datetime.datetime.utcnow()}}
         users.update_one(query, last_access)
         return True
-    else:
-        user = {'telegram_id': telegram_id,
-                'name': name,
-                'username': username,
-                'created': datetime.datetime.utcnow()}
-        users.insert_one(user)
+
+
+def create_user(telegram_id, name, username):
+    if not CONFIG.DB_SAVE:
         return True
+
+    users = db.users
+    user = {'telegram_id': telegram_id,
+            'name': name,
+            'username': username,
+            'created': datetime.datetime.utcnow(),
+            'last_access': datetime.datetime.utcnow()
+            }
+    users.insert_one(user)
+    return True
+
+
+def save_user_info(telegram_id, info, value):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    users = db.users
+    query = {'telegram_id': telegram_id}
+    to_update = {'$set': {f'{info}': value}}
+    users.update_one(query, to_update)
+    return True
+
+
+def user_has_info(telegram_id, info):
+    users = db.users
+    query = {'telegram_id': telegram_id}
+    return users.find_one(query).get(info) or False
 
 
 def save_experiment(experiment):
@@ -35,37 +68,26 @@ def save_experiment(experiment):
     return True
 
 
-def save_recommended(bandit_id, baseline_id, telegram_id):
-    if not CONFIG.DB_SAVE:
-        return True
-
-    users = db.users
-    users.find_one_and_update({'telegram_id': telegram_id},
-                              {'$addToSet': {'recommended': {'$each': [bandit_id, baseline_id]}}}
-                              )
-    return True
-
-
 def get_recommended(telegram_id):
     users = db.users
-    recommended = users.find_one({'telegram_id': telegram_id}).get('recommended')
+    recommended = users.find_one({'telegram_id': telegram_id}).get('recommended') or []
     return recommended
 
 
-def save_selected(telegram_id, movie_id):
+def update_user_column_array(telegram_id, movie_id, column):
     if not CONFIG.DB_SAVE:
         return True
 
     users = db.users
     users.find_one_and_update({'telegram_id': telegram_id},
-                              {'$addToSet': {'selected': movie_id}}
+                              {'$addToSet': {column: movie_id}}
                               )
     return True
 
 
 def get_context_ids(telegram_id):
     users = db.users
-    return users.find_one({'telegram_id': telegram_id}).get('selected')
+    return users.find_one({'telegram_id': telegram_id}).get('selected') or []
 
 
 def binarize_context(context_ids):
@@ -98,4 +120,17 @@ def save_round(telegram_id, context, actions, selected, reward):
                   'reward': reward
                   }
     rounds.insert_one(this_round)
+    return True
+
+
+def save_error(telegram_id, message):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    errors = db.errors
+    error = {'telegram_id': telegram_id,
+             'message': message,
+             'created': datetime.datetime.utcnow()
+             }
+    errors.insert_one(error)
     return True

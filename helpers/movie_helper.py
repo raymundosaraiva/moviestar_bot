@@ -19,6 +19,21 @@ IMG_TYPE = ((1, 'backdrops'), (2, 'posters'))
 
 LANGUAGES = ((1, 'en-US'), (2, 'pt-BR'),)
 
+BANDIT_N_LIST = CONFIG.BANDIT_NEGATIVE_FEEDBACK
+
+def movie_card(movie):
+    if movie:
+        movie_data = get_movie_card_data(movie)
+        movie_message = f"\U0001F3AC<b>{movie_data.get('title')} ({movie_data.get('release_date')})</b>" \
+                        f"\n\n{movie_data.get('overview')} " \
+                        f"<a href='{movie_data.get('detailsUrl')}'>...Mais detalhes</a>" \
+                        f"\n\n<a href='{movie_data.get('posterUrl')}'>Acessar Poster</a>"
+        if movie_data.get('trailerUrl'):
+            movie_message += f"\n<a href='{movie_data.get('trailerUrl')}'>Acessar Trailer</a>"
+        return movie_message
+    else:
+        return "Ops. Desculpe. Ocorreu um erro ao retorar o filme!"
+
 
 def get_movie_card_data(movie, extra=True):
     movie_data = {}
@@ -147,27 +162,13 @@ def add_candidates(genre, keywords, candidates, index):
         candidates[movie.get('id')] = movie
 
 
-def get_n_candidates(context, genre, keyword, n):
+def get_n_candidates(context, genre, keyword, n=BANDIT_N_LIST):
     candidates = dict()
     # TODO: If short than 10 get more movies, if not show we do not have options
     for index in range(1, n + 1):
         add_candidates(genre, keyword, candidates, index)
         context.user_data['next_index'] = index + 1
     return candidates
-
-
-def movie_card(movie):
-    if movie:
-        movie_data = get_movie_card_data(movie)
-        movie_message = f"\U0001F3AC<b>{movie_data.get('title')} ({movie_data.get('release_date')})</b>" \
-                        f"\n\n{movie_data.get('overview')} " \
-                        f"<a href='{movie_data.get('detailsUrl')}'>...Mais detalhes</a>" \
-                        f"\n\n<a href='{movie_data.get('posterUrl')}'>Acessar Poster</a>"
-        if movie_data.get('trailerUrl'):
-            movie_message += f"\n<a href='{movie_data.get('trailerUrl')}'>Acessar Trailer</a>"
-        return movie_message
-    else:
-        return "Ops. Desculpe. Ocorreu um erro ao retorar o filme!"
 
 
 def get_code(resp):
