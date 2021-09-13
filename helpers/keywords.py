@@ -129,3 +129,9 @@ keywords_list = {
     "Criminoso": 15009
   }
 }
+
+
+def get_keyword_name(genre, val):
+    for key, value in keywords_list.get(str(genre)).items():
+        if int(val) == value:
+            return key

@@ -10,7 +10,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from config import DefaultConfig
 from commands import *
 
-
 CONFIG = DefaultConfig()
 
 # Enable logging
@@ -21,10 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 def error(update, context):
-    telegram_id, name = update.effective_user.id, update.effective_user.first_name,
+    telegram_id, name = update.effective_user.id, update.effective_user.first_name
+    save_error(telegram_id, str(context.error))
     """Log Errors caused by Updates."""
     logger.warning('Update on user %s caused error "%s"', telegram_id, context.error)
-    save_error(telegram_id, context.error)
+    update.callback_query.edit_message_text(
+        '\n\U0001F6A8 Desculpe mas tivemos um erro! '
+        '\nPressione /start para recomeçar...'
+    )
 
 
 def connect_to_telegram():

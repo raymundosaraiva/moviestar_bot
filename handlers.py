@@ -4,10 +4,12 @@ from telegram.ext import CallbackContext
 from telegram import ParseMode
 
 from helpers.movie_helper import *
+from helpers.genres import genres
 from wrappers import send_typing_action
 from markups import *
-from helpers.keywords import keywords_list
+from helpers.keywords import keywords_list, get_keyword_name
 from context_bandit import policy
+
 
 from database import *
 
@@ -188,8 +190,8 @@ def feedback_answer(update: Update, context: CallbackContext):
     state = recommended['state']
     genre_id = context.user_data.get('iterative').get('genre')
     keyword_id = context.user_data.get('iterative').get('keyword')
-    experiment = {'genre': genre_id,
-                  'keyword': keyword_id,
+    experiment = {'genre': genres.get(int(genre_id)),
+                  'keyword': get_keyword_name(genre_id, keyword_id) if keyword_id else '',
                   'movie_id': movie_id,
                   'movie_title': movie_title,
                   'feedback': get_code(feedback),
