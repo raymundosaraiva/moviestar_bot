@@ -40,4 +40,4 @@ def text(update, context):
         update.message.reply_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
         context.user_data['opinion'] = None
     else:
-        genre_buttons_edit(update, True)
+        genre_buttons_edit(update, False)
