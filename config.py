@@ -25,7 +25,6 @@ class DefaultConfig:
 
     # BANDIT CONFIGS
     # N x 20 movies in the list
-    BANDIT_NEGATIVE_FEEDBACK = os.environ.get("BANDIT_N_LIST", 3)
     BANDIT_OPTION = os.environ.get("BANDIT_OPTION", 3)
 
 

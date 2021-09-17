@@ -1,5 +1,3 @@
-import random
-
 from telegram.ext import CallbackContext
 from telegram import ParseMode
 
@@ -25,7 +23,7 @@ def welcome(update):
         '\n  - Informar seu sexo e faixa etária;'
         '\n  - Receber no mínimo 5 recomendações;'
         '\n  - Avaliar todas as recomendações;'
-        '\n  - Responder sobre a sua satisfação final.;'
+        '\n  - Responder sobre a sua satisfação final.'
         '\n\n Obrigado desde já pela participação',
         reply_markup=consent_markup, parse_mode=ParseMode.HTML
     )
@@ -179,8 +177,6 @@ def feedback_answer(update: Update, context: CallbackContext):
     telegram_id = update.effective_user.id
     recommended = context.user_data.get('recommended')
     reward = int('feedback_liked' in feedback)
-    if not reward:
-        count_negative_feedback(context)
     candidates = list(context.user_data.get('candidates'))
     context_to_predict = context.user_data.get('context_to_predict') or []
 
@@ -214,16 +210,9 @@ def after_feedback_answer(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     if 'recommend_next' in query.data:
-        negative_feedback_count = context.user_data.get('negative_feedback') or 0
-        # Ask if user give n negative feedback
-        if negative_feedback_count >= CONFIG.BANDIT_NEGATIVE_FEEDBACK:
-            query.edit_message_text(text=f'Quer manter o padrão de recomendação atual ou deseja explorar novas opções?',
-                                    reply_markup=bandit_feedback_markup)
-            context.user_data['negative_feedback'] = 0
-        else:
-            context.user_data['negative_feedback'] = 0
-            telegram_id = update.effective_user.id
-            recommend_movie(telegram_id, query, context)
+        query.edit_message_text(
+            'Deseja manter o padrão de recommendações atual ou deseja explorar novas opções?',
+            reply_markup=bandit_feedback_markup)
     elif 'recommend_param' in query.data:
         genre_buttons_edit(query, True)
     elif 'recommend_end' in query.data:
@@ -259,28 +248,21 @@ def final_answer(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     telegram_id = update.effective_user.id
-    code = int(get_code(query.data))
-    print(f'[{telegram_id}] Final response > {code}')
-    query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
+    grade = int(get_code(query.data))
+    save_grade(telegram_id, grade)
+    print(f'[{telegram_id}] Final response > {grade}')
+    query.edit_message_text('Você também deseja escrever uma avaliação?',
+                            reply_markup=opinion_markup)
 
 
-def get_current_round(context):
-    iterative = context.user_data.get('iterative')
-    genre, keyword = iterative.get('genre'), iterative.get('keyword')
-    rounds = context.user_data.get('round')
-    if rounds and rounds.get(genre) and rounds.get(genre).get(keyword):
-        return rounds.get(genre).get(keyword)
-    return 1
-
-
-def add_current_round(context):
-    iterative = context.user_data.get('iterative')
-    genre, keyword = iterative.get('genre'), iterative.get('keyword')
-    rounds = context.user_data.get('round')
-    if rounds and rounds.get(genre) and rounds.get(genre).get(keyword):
-        context.user_data['round'][genre][keyword] += 1
-    else:
-        context.user_data['round'] = {genre: {keyword: 1}}
+def opinion_answer(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    if 'opinion_no' == query.data:
+        query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
+    elif 'opinion_yes' == query.data:
+        context.user_data['opinion'] = True
+        query.edit_message_text('Digite a sua avaliação, caso tenha desistido digite /start')
 
 
 def get_candidate_from_context(candidates, context_to_predict, exploit):
@@ -289,16 +271,3 @@ def get_candidate_from_context(candidates, context_to_predict, exploit):
     action = policy(actions, context_to_predict, X_context, y_context, r_context, exploit)
     state = 'no_context' if not X_context else ('exploit' if exploit else 'explore')
     return candidates[action], state
-
-
-def get_candidate_from_baseline(candidates):
-    actions = list(candidates)
-    action = random.choice(actions)
-    return candidates[action]
-
-
-def count_negative_feedback(context):
-    if context.user_data.get('negative_feedback'):
-        context.user_data['negative_feedback'] += 1
-    else:
-        context.user_data['negative_feedback'] = 1

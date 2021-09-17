@@ -1,14 +1,20 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 
-
 consent_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='\U0001F44D Desejo participar', callback_data='consent_agree'),
      InlineKeyboardButton(text='\U0001F44E Não tenho interesse', callback_data='consent_disagree')]
 ])
 
+opinion_markup = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='\U0001F44E Não, podemos finalizar', callback_data='opinion_no')],
+     [InlineKeyboardButton(text='\U0001F44D Sim, quero escrever', callback_data='opinion_yes')]
+])
+
 feedback_markup = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='\U0001F44D Gostei', callback_data='feedback_liked'),
-     InlineKeyboardButton(text='\U0001F44E Não Gostei', callback_data='feedback_disliked')]
+    [InlineKeyboardButton(text='\U0001F44D Gostei e quero manter padrão atual', callback_data='feedback_liked_exploit')],
+    [InlineKeyboardButton(text='\U0001F44D Gostei mas quero explorar outros', callback_data='feedback_liked_explore')],
+    [InlineKeyboardButton(text='\U0001F44E Não Gostei mas quero manter padrão atual', callback_data='feedback_disliked_exploit')],
+    [InlineKeyboardButton(text='\U0001F44E Não Gostei e quero explorar outros', callback_data='feedback_disliked_explore')]
 ])
 
 after_feedback_markup = InlineKeyboardMarkup([

@@ -7,12 +7,15 @@ from wrappers import send_typing_action
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
 @send_typing_action
-def start(update, _: CallbackContext):
+def start(update, context: CallbackContext):
     """Send a message when the command /start is issued."""
+    context.user_data['opinion'] = None
     telegram_id, name, username = update.effective_user.id, update.effective_user.first_name, update.effective_user.name
     if has_user(telegram_id):
         update_user_last_access(telegram_id)
-        if not user_has_info(telegram_id, 'sex'):
+        if not user_has_info(telegram_id, 'consent'):
+            welcome(update)
+        elif not user_has_info(telegram_id, 'sex'):
             sex_buttons_edit(update)
         elif not user_has_info(telegram_id, 'age'):
             age_buttons_edit(update)
@@ -31,4 +34,10 @@ def help(update, context):
 
 @send_typing_action
 def text(update, context):
-    genre_buttons_edit(update, True)
+    if context.user_data.get('opinion'):
+        telegram_id, message = update.effective_user.id, update.message.text
+        save_review(telegram_id, message)
+        update.message.reply_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
+        context.user_data['opinion'] = None
+    else:
+        genre_buttons_edit(update, True)

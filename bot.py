@@ -54,6 +54,7 @@ def connect_to_telegram():
     dp.add_handler(CallbackQueryHandler(after_feedback_answer, pattern='recommend_*'))
     dp.add_handler(CallbackQueryHandler(bandit_answer, pattern='bandit_*'))
     dp.add_handler(CallbackQueryHandler(final_answer, pattern='final_*'))
+    dp.add_handler(CallbackQueryHandler(opinion_answer, pattern='opinion_*'))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, text))

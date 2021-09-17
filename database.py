@@ -134,3 +134,29 @@ def save_error(telegram_id, message):
              }
     errors.insert_one(error)
     return True
+
+
+def save_grade(telegram_id, grade):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    grades = db.grades
+    data = {'telegram_id': telegram_id,
+            'grade': grade,
+            'created': datetime.datetime.utcnow()
+            }
+    grades.insert_one(data)
+    return True
+
+
+def save_review(telegram_id, review):
+    if not CONFIG.DB_SAVE:
+        return True
+
+    reviews = db.reviews
+    data = {'telegram_id': telegram_id,
+            'review': review,
+            'created': datetime.datetime.utcnow()
+            }
+    reviews.insert_one(data)
+    return True
