@@ -1,7 +1,8 @@
-from bot import CONFIG
 import datetime
 from pymongo import MongoClient
+from config import DefaultConfig
 
+CONFIG = DefaultConfig()
 client = MongoClient(CONFIG.DB_HOST)
 db = client.movie_star
 
@@ -58,6 +59,11 @@ def user_has_info(telegram_id, info):
     return users.find_one(query).get(info) or False
 
 
+def get_users():
+    users = db.users
+    return users.find() or []
+
+
 def save_experiment(experiment):
     if not CONFIG.DB_SAVE:
         return True
@@ -66,6 +72,11 @@ def save_experiment(experiment):
     experiment['created'] = datetime.datetime.utcnow()
     experiments.insert_one(experiment)
     return True
+
+
+def get_experiments():
+    experiments = db.experiments
+    return experiments.find() or []
 
 
 def get_recommended(telegram_id):
@@ -149,6 +160,11 @@ def save_grade(telegram_id, grade):
     return True
 
 
+def get_grades():
+    grades = db.grades
+    return grades.find() or []
+
+
 def save_review(telegram_id, review):
     if not CONFIG.DB_SAVE:
         return True
@@ -160,3 +176,8 @@ def save_review(telegram_id, review):
             }
     reviews.insert_one(data)
     return True
+
+
+def get_reviews():
+    reviews = db.reviews
+    return reviews.find() or []

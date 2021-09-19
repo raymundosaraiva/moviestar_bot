@@ -7,10 +7,8 @@ import os
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
-from config import DefaultConfig
 from commands import *
-
-CONFIG = DefaultConfig()
+from admin import users, experiments, grades, reviews
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -43,6 +41,12 @@ def connect_to_telegram():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+
+    # admin commands - needs 'admin' attribute on user
+    dp.add_handler(CommandHandler("users", users))
+    dp.add_handler(CommandHandler("experiments", experiments))
+    dp.add_handler(CommandHandler("grades", grades))
+    dp.add_handler(CommandHandler("reviews", reviews))
 
     # CallbackQuery Handlers
     dp.add_handler(CallbackQueryHandler(consent_answer, pattern='consent_*'))
