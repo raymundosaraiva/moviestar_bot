@@ -11,10 +11,8 @@ opinion_markup = InlineKeyboardMarkup([
 ])
 
 feedback_markup = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='\U0001F44D Gostei e quero manter padrão atual', callback_data='feedback_liked_exploit')],
-    [InlineKeyboardButton(text='\U0001F44D Gostei mas quero explorar outros', callback_data='feedback_liked_explore')],
-    [InlineKeyboardButton(text='\U0001F44E Não Gostei mas quero manter padrão atual', callback_data='feedback_disliked_exploit')],
-    [InlineKeyboardButton(text='\U0001F44E Não Gostei e quero explorar outros', callback_data='feedback_disliked_explore')]
+    [InlineKeyboardButton(text='\U0001F44D Gostei', callback_data='feedback_liked'),
+    InlineKeyboardButton(text='\U0001F44E Não Gostei', callback_data='feedback_disliked')]
 ])
 
 after_feedback_markup = InlineKeyboardMarkup([
