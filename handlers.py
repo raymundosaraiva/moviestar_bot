@@ -183,6 +183,8 @@ def feedback_answer(update: Update, context: CallbackContext):
     feedback = query.data
     telegram_id = update.effective_user.id
     recommended = context.user_data.get('recommended')
+    if not recommended:
+        return
     reward = int('feedback_liked' in feedback)
     candidates = list(context.user_data.get('candidates'))
     context_to_predict = context.user_data.get('context_to_predict') or []
