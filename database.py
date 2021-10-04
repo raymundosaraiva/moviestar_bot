@@ -76,7 +76,7 @@ def save_experiment(experiment):
 
 def get_experiments():
     experiments = db.experiments
-    return experiments.find() or []
+    return experiments.find().limit(5) or []
 
 
 def get_recommended(telegram_id):
@@ -128,7 +128,8 @@ def save_round(telegram_id, context, actions, selected, reward):
                   'context': context,
                   'actions': actions,
                   'selected': selected,
-                  'reward': reward
+                  'reward': reward,
+                  'created': datetime.datetime.utcnow()
                   }
     rounds.insert_one(this_round)
     return True
@@ -147,22 +148,23 @@ def save_error(telegram_id, message):
     return True
 
 
-def save_grade(telegram_id, grade):
+def save_response(telegram_id, question_id, response):
     if not CONFIG.DB_SAVE:
         return True
 
-    grades = db.grades
+    responses = db.responses
     data = {'telegram_id': telegram_id,
-            'grade': grade,
+            'question_id': question_id,
+            'response': response,
             'created': datetime.datetime.utcnow()
             }
-    grades.insert_one(data)
+    responses.insert_one(data)
     return True
 
 
-def get_grades():
-    grades = db.grades
-    return grades.find() or []
+def get_responses():
+    responses = db.responses
+    return responses.find().limit(10) or []
 
 
 def save_review(telegram_id, review):
@@ -180,4 +182,8 @@ def save_review(telegram_id, review):
 
 def get_reviews():
     reviews = db.reviews
-    return reviews.find() or []
+    return reviews.find().limit(10) or []
+
+
+def get_recommended_count(telegram_id):
+    return len(get_recommended(telegram_id))

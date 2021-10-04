@@ -8,7 +8,7 @@ import os
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
 from commands import *
-from admin import users, experiments, grades, reviews
+from admin import users, experiments, responses, reviews
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -23,7 +23,7 @@ def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update on user %s caused error "%s"', telegram_id, context.error)
     update.callback_query.edit_message_text(
-        '\n\U0001F6A8 Desculpe mas tivemos um erro! '
+        '\n\U0001F622 Desculpe mas tivemos um erro! '
         '\nPressione /start para recomeçar...'
     )
 
@@ -45,7 +45,7 @@ def connect_to_telegram():
     # admin commands - needs 'admin' attribute on user
     dp.add_handler(CommandHandler("users", users))
     dp.add_handler(CommandHandler("experiments", experiments))
-    dp.add_handler(CommandHandler("grades", grades))
+    dp.add_handler(CommandHandler("responses", responses))
     dp.add_handler(CommandHandler("reviews", reviews))
 
     # CallbackQuery Handlers
@@ -57,8 +57,7 @@ def connect_to_telegram():
     dp.add_handler(CallbackQueryHandler(feedback_answer, pattern='feedback_*'))
     dp.add_handler(CallbackQueryHandler(after_feedback_answer, pattern='recommend_*'))
     dp.add_handler(CallbackQueryHandler(bandit_answer, pattern='bandit_*'))
-    dp.add_handler(CallbackQueryHandler(final_answer, pattern='final_*'))
-    dp.add_handler(CallbackQueryHandler(opinion_answer, pattern='opinion_*'))
+    dp.add_handler(CallbackQueryHandler(extra_questions, pattern='extra_*'))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, text))

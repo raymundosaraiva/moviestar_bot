@@ -12,7 +12,8 @@ def policy(actions, context_to_predict, context_features, context_actions, rewar
     # until there are at least 2 observations of each class, will use this prior
     beta_prior = ((3. / n_choices, 4), 2)
     # The base algorithm is embedded in EpsilonGreedy metaheuristic
-    epsilon_greedy = EpsilonGreedy(deepcopy(base_algorithm), nchoices=n_choices, beta_prior=beta_prior)
+    epsilon_greedy = EpsilonGreedy(deepcopy(base_algorithm), nchoices=n_choices,
+                                   beta_prior=beta_prior, explore_prob=0.9999)
     # fitting the context
     if context_features:
         epsilon_greedy.fit(X=np.array(context_features), a=np.array(context_actions), r=np.array(rewards))

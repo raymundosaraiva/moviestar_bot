@@ -27,10 +27,10 @@ def movie_card(movie):
         movie_data = get_movie_card_data(movie)
         movie_message = f"\U0001F3AC <b>{movie_data.get('title')} ({movie_data.get('release_date')})</b>" \
                         f"\n\n{movie_data.get('overview')} " \
-                        f"\n\n<a href='{movie_data.get('detailsUrl')}'>Acessar Página do Filme</a>" \
-                        f"\n\n<a href='{movie_data.get('posterUrl')}'>Acessar Poster</a>"
+                        f"\n\n\U0001F517<a href='{movie_data.get('detailsUrl')}'><i>Acessar Página do Filme</i></a>" \
+                        f"\n\n\U0001F517<a href='{movie_data.get('posterUrl')}'><i>Acessar Poster</i></a>"
         if movie_data.get('trailerUrl'):
-            movie_message += f"\n<a href='{movie_data.get('trailerUrl')}'>Acessar Trailer</a>"
+            movie_message += f"\n\U0001F517<a href='{movie_data.get('trailerUrl')}'><i>Acessar Trailer</i></a>"
         return movie_message
     else:
         return "Ops. Desculpe. Ocorreu um erro ao retorar o filme!"
@@ -158,9 +158,9 @@ def discover(genres, keywords, page=1):
 
 
 def add_candidates(genre, keywords, candidates, index):
-    # TODO: If short than 10 get more movies, if not show we do not have options
     for movie in discover(genre, keywords, index):
-        candidates[movie.get('id')] = movie
+        if movie.get('overview'):
+            candidates[movie.get('id')] = movie
 
 
 def get_n_candidates(context, genre, keyword, n=BANDIT_N_LIST):

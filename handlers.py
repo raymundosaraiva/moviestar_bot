@@ -8,7 +8,6 @@ from markups import *
 from helpers.keywords import keywords_list, get_keyword_name
 from context_bandit import policy
 
-
 from database import *
 
 
@@ -133,7 +132,7 @@ def keyword_answer(update: Update, context: CallbackContext):
     telegram_id = update.effective_user.id
     context.user_data['candidates'] = None
     context.user_data['candidates'] = get_n_candidates(context, genre, keyword)
-    recommend_movie(telegram_id, query, context)
+    recommend_movie(telegram_id, query, context, True)
 
 
 def remove_recommended(telegram_id, candidates):
@@ -142,14 +141,22 @@ def remove_recommended(telegram_id, candidates):
             candidates.pop(recommended)
 
 
-def recommend_movie(telegram_id, query, context, exploit=False):
+def get_candidate_from_context(candidates, context_to_predict, exploit):
+    actions = list(candidates)
+    X_context, y_context, r_context = get_all_context_binarized(actions)
+    action = policy(actions, context_to_predict, X_context, y_context, r_context, exploit)
+    state = 'no_context' if not X_context else ('exploit' if exploit else 'explore')
+    return candidates[action], state
+
+
+def recommend_movie(telegram_id, query, context, exploit=True):
     candidates = context.user_data.get('candidates')
     remove_recommended(telegram_id, candidates)
     # TODO: If candidates < n discover more candidates
     candidates_id = list(candidates)
 
     if len(candidates) < 1:
-        query.edit_message_text(text=f'\U0001F629 Desculpe! Não temos recommendações no momento.'
+        query.edit_message_text(text=f'\U0001F603 Desculpe! Não temos recommendações no momento.'
                                      f'\nDigite /filme para informar novos parâmetros.')
 
     context_ids = get_context_ids(telegram_id)
@@ -202,8 +209,16 @@ def feedback_answer(update: Update, context: CallbackContext):
     print(f'#REC > {update.effective_user.first_name}[{telegram_id}] > {movie_title}[{movie_id}] {get_code(feedback)}')
 
     context.user_data['recommended'] = None
-    query.message.reply_text(text=f'\U0001F603 Obrigado pela sua avaliação!',
-                             reply_markup=after_feedback_markup)
+    # Get feedback in each 5 interactions
+    if get_recommended_count(telegram_id) % 5 == 0:
+        query.edit_message_text('Você ficou satisfeito com as primeiras recomendações?',
+                                reply_markup=InlineKeyboardMarkup([
+                                    [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_1_yes'),
+                                     InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_1_no')]
+                                ]))
+    else:
+        query.message.reply_text(text=f'\U0001F603 Obrigado pela sua avaliação!',
+                                 reply_markup=after_feedback_markup)
 
 
 def after_feedback_answer(update: Update, context: CallbackContext):
@@ -211,21 +226,10 @@ def after_feedback_answer(update: Update, context: CallbackContext):
     query.answer()
     if 'recommend_next' in query.data:
         query.edit_message_text(
-            'Deseja manter o padrão de recommendações atual ou deseja explorar novas opções?',
+            'Deseja ter recommendações baseadas no seu histórico ou deseja explorar diversificadas?',
             reply_markup=bandit_feedback_markup)
-    elif 'recommend_param' in query.data:
-        genre_buttons_edit(query, True)
     elif 'recommend_end' in query.data:
-        query.edit_message_text(
-            'Como você avalia as recomendações que tem recebido?',
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton('Estou Muito Satisfeito', callback_data='final_5')],
-                [InlineKeyboardButton('Estou Satisfeito', callback_data='final_4')],
-                [InlineKeyboardButton('Estou Pouco Satisfeito', callback_data='final_3')],
-                [InlineKeyboardButton('Estou Insatisfeito', callback_data='final_2')],
-                [InlineKeyboardButton('Estou Muito Insatisfeito', callback_data='final_1')]
-            ])
-        )
+        query.edit_message_text('\U0001F603 Obrigado!\nCaso queira uma nova recomendação digite ou pressione /start')
 
 
 def bandit_answer(update: Update, context: CallbackContext):
@@ -244,30 +248,44 @@ def bandit_answer(update: Update, context: CallbackContext):
         recommend_movie(telegram_id, query, context, exploit=False)
 
 
-def final_answer(update: Update, context: CallbackContext):
+def extra_questions(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     telegram_id = update.effective_user.id
-    grade = int(get_code(query.data))
-    save_grade(telegram_id, grade)
-    print(f'[{telegram_id}] Final response > {grade}')
-    query.edit_message_text('Você também deseja escrever uma avaliação?',
-                            reply_markup=opinion_markup)
-
-
-def opinion_answer(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    if 'opinion_no' == query.data:
-        query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
-    elif 'opinion_yes' == query.data:
-        context.user_data['opinion'] = True
-        query.edit_message_text('Digite a sua avaliação, caso tenha desistido digite /start')
-
-
-def get_candidate_from_context(candidates, context_to_predict, exploit):
-    actions = list(candidates)
-    X_context, y_context, r_context = get_all_context_binarized(actions)
-    action = policy(actions, context_to_predict, X_context, y_context, r_context, exploit)
-    state = 'no_context' if not X_context else ('exploit' if exploit else 'explore')
-    return candidates[action], state
+    data = query.data
+    resp = get_code(get_code(data))
+    if '_1_' in data:
+        save_response(telegram_id, '1', resp)
+        query.edit_message_text(
+            'Você sentiu diferença quando escolhia entre ter recommendações pelo histórico'
+            ' ou explorar recommendações diversificadas?',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_2_yes'),
+                 InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_2_no')]
+            ]))
+    elif '_2_' in data:
+        save_response(telegram_id, '2', resp)
+        query.edit_message_text(
+            'Como você avalia as recomendações que tem recebido?',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton('Estou Muito Satisfeito', callback_data='extra_3_5')],
+                [InlineKeyboardButton('Estou Satisfeito', callback_data='extra_3_4')],
+                [InlineKeyboardButton('Estou Pouco Satisfeito', callback_data='extra_3_3')],
+                [InlineKeyboardButton('Estou Insatisfeito', callback_data='extra_3_2')],
+                [InlineKeyboardButton('Estou Muito Insatisfeito', callback_data='extra_3_1')]
+            ])
+        )
+    elif '_3_' in data:
+        save_response(telegram_id, '3', int(resp))
+        query.edit_message_text(
+            'Você também deseja escrever uma avaliação?',
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(text='\U0001F44E Não, podemos finalizar', callback_data='extra_4_no')],
+                [InlineKeyboardButton(text='\U0001F44D Sim, quero escrever', callback_data='extra_4_yes')]
+            ]))
+    elif '_4_' in data:
+        if 'no' == resp:
+            query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
+        elif 'yes' == resp:
+            context.user_data['opinion'] = True
+            query.edit_message_text('Digite a sua avaliação, caso tenha desistido digite /start')

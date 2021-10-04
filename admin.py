@@ -17,9 +17,9 @@ def experiments(update, context: CallbackContext):
 
 
 @send_typing_action
-def grades(update, context: CallbackContext):
+def responses(update, context: CallbackContext):
     list_not_include = ['_id']
-    show_admin_data(update, 'GRADES', get_grades(), list_not_include)
+    show_admin_data(update, 'RESPONSES', get_responses(), list_not_include)
 
 
 @send_typing_action

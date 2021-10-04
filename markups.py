@@ -5,11 +5,6 @@ consent_markup = InlineKeyboardMarkup([
      InlineKeyboardButton(text='\U0001F44E Não tenho interesse', callback_data='consent_disagree')]
 ])
 
-opinion_markup = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='\U0001F44E Não, podemos finalizar', callback_data='opinion_no')],
-     [InlineKeyboardButton(text='\U0001F44D Sim, quero escrever', callback_data='opinion_yes')]
-])
-
 feedback_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='\U0001F44D Gostei', callback_data='feedback_liked'),
     InlineKeyboardButton(text='\U0001F44E Não Gostei', callback_data='feedback_disliked')]
@@ -17,13 +12,12 @@ feedback_markup = InlineKeyboardMarkup([
 
 after_feedback_markup = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='Próximo', callback_data='recommend_next')],
-    [InlineKeyboardButton(text='Mudar Parâmetros', callback_data='recommend_param')],
     [InlineKeyboardButton(text='Finalizar', callback_data='recommend_end')],
 ])
 
 bandit_feedback_markup = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='Manter Atual', callback_data='bandit_exploit')],
-    [InlineKeyboardButton(text='Explorar Novos', callback_data='bandit_explore')],
+    [InlineKeyboardButton(text='\U0001F503 Baseadas no Histórico', callback_data='bandit_exploit')],
+    [InlineKeyboardButton(text='\U0001F50D Explorar Diversificadas', callback_data='bandit_explore')],
 ])
 
 similar_markup = InlineKeyboardMarkup([
