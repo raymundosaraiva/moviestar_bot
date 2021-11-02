@@ -4,6 +4,7 @@ import datetime
 from config import DefaultConfig
 from database import get_movies
 from helpers.keywords import keywords_unique
+from helpers.genres import genres
 
 CONFIG = DefaultConfig()
 
@@ -179,7 +180,8 @@ def discover(genres, keywords, page=1):
 
 def get_candidates(genre, keyword):
     candidates = {}
-    movies = get_movies(genre, keyword, 100)
+    genre_name = genres.get(int(genre))
+    movies = get_movies(genre_name, keyword, 100)
     for movie in movies:
         candidates[movie.get('_id')] = movie
     return candidates
