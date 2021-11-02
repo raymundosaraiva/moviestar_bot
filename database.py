@@ -1,10 +1,17 @@
 import datetime
 from pymongo import MongoClient
 from config import DefaultConfig
+import pandas as pd
 
 CONFIG = DefaultConfig()
 client = MongoClient(CONFIG.DB_HOST)
 db = client.movie_star
+
+
+def save_movie(movie):
+    movies = db.movies
+    key = {'_id': movie.get('_id')}
+    movies.update(key, movie, upsert=True)
 
 
 def has_user(telegram_id):
@@ -187,3 +194,14 @@ def get_reviews():
 
 def get_recommended_count(telegram_id):
     return len(get_recommended(telegram_id))
+
+
+def load_movies_to_db():
+    movies_df = pd.read_csv("../movie_data/movie_details_complete.csv", lineterminator='\n', dtype=str)
+    movies_df = movies_df.rename(columns={'tmdbId': '_id', 'movieId': 'ml_id'})
+    movies_dict = movies_df.to_dict('records')
+    for movie in movies_dict:
+        save_movie(movie)
+        print(f'Saved movie {movie["_id"]}')
+    return True
+

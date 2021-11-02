@@ -28,6 +28,13 @@ def reviews(update, context: CallbackContext):
     show_admin_data(update, 'REVIEWS', get_reviews(), list_not_include)
 
 
+@send_typing_action
+def populate_db(update, context: CallbackContext):
+    resp = load_movies_to_db()
+    update.message.reply_text('Banco de dados carregado!' if resp else 'Ocorreu um Erro!',
+                              parse_mode=ParseMode.HTML)
+
+
 def show_admin_data(update, title, data_list, list_not_include):
     telegram_id = update.effective_user.id
     # if has_user(telegram_id) and user_has_info(telegram_id, 'admin'):

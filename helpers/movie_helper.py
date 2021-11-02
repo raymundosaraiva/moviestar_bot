@@ -87,9 +87,16 @@ def get_movies_resource(movie_num, url='', page=1):
     return response
 
 
-def get_one_movie_resource(movie_num):
+def get_one_movie_resource_pt(movie_num):
     movie = get_resource(movie_num)
     return movie
+
+
+def get_one_movie_resource_en(movie_num, page=1):
+    url = f"{CONFIG.TMDB_URL}movie/{str(movie_num)}?api_key={CONFIG.TMDB_KEY}" \
+          f"&page={str(page)}&language=en-US"
+    response = requests.get(url)
+    return response.json()
 
 
 def get_similar_resources(movie_id):

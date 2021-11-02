@@ -8,7 +8,7 @@ import os
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
 from commands import *
-from admin import users, experiments, responses, reviews
+from admin import users, experiments, responses, reviews, populate_db
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -47,6 +47,7 @@ def connect_to_telegram():
     dp.add_handler(CommandHandler("experiments", experiments))
     dp.add_handler(CommandHandler("responses", responses))
     dp.add_handler(CommandHandler("reviews", reviews))
+    dp.add_handler(CommandHandler("populate_db", populate_db))
 
     # CallbackQuery Handlers
     dp.add_handler(CallbackQueryHandler(consent_answer, pattern='consent_*'))
