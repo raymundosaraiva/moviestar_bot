@@ -14,6 +14,14 @@ def save_movie(movie):
     movies.update(key, movie, upsert=True)
 
 
+def get_movies(genre, keyword, n):
+    movies = db.movies
+    query = {'genres': {'$regex': genre}}
+    if keyword:
+        query = {'genres': {'$regex': genre}, 'keywords': {'$regex': f'k{str(keyword)}'}}
+    return movies.find(query).sort("popularity").limit(n)
+
+
 def has_user(telegram_id):
     users = db.users
     if users.find_one({'telegram_id': telegram_id}):
@@ -201,6 +209,8 @@ def load_movies_to_db():
     movies_df = movies_df.rename(columns={'tmdbId': '_id', 'movieId': 'ml_id'})
     movies_dict = movies_df.to_dict('records')
     for movie in movies_dict:
+        movie["_id"] = int(float(movie["_id"]))
+        movie["release_date"] = int(float(movie["release_date"]))
         save_movie(movie)
         print(f'Saved movie {movie["_id"]}')
     return True

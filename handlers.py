@@ -131,7 +131,7 @@ def keyword_answer(update: Update, context: CallbackContext):
     genre = context.user_data.get('iterative').get('genre')
     telegram_id = update.effective_user.id
     context.user_data['candidates'] = None
-    context.user_data['candidates'] = get_n_candidates(context, genre, keyword)
+    context.user_data['candidates'] = get_candidates(genre, keyword)
     recommend_movie(telegram_id, query, context, True)
 
 
@@ -164,13 +164,13 @@ def recommend_movie(telegram_id, query, context, exploit=True):
     context.user_data['context_to_predict'] = context_ids
 
     movie_bandit, state = get_candidate_from_context(candidates, context_binarized, exploit)
-    label = candidates_id.index(movie_bandit.get('id'))
+    label = candidates_id.index(movie_bandit.get('_id'))
 
     query.edit_message_text(text=f'{movie_card(movie_bandit)}'
                                  f'\n\n\n<b>Avalie a recomendação:</b>\n',
                             reply_markup=feedback_markup, parse_mode=ParseMode.HTML, disable_web_page_preview=False)
 
-    context.user_data['recommended'] = {'id': movie_bandit.get('id'),
+    context.user_data['recommended'] = {'id': movie_bandit.get('_id'),
                                         'title': movie_bandit.get('title'),
                                         'context': context_ids,
                                         'state': state,
@@ -190,7 +190,7 @@ def feedback_answer(update: Update, context: CallbackContext):
     context_to_predict = context.user_data.get('context_to_predict') or []
 
     # Experiment result to save on DB
-    movie_id = recommended['id']
+    movie_id = recommended['_id']
     movie_title = recommended['title']
     state = recommended['state']
     genre_id = context.user_data.get('iterative').get('genre')
@@ -242,11 +242,11 @@ def bandit_answer(update: Update, context: CallbackContext):
     keyword = context.user_data.get('iterative').get('keyword')
     if 'bandit_exploit' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_n_candidates(context, genre_id, keyword)
+        context.user_data['candidates'] = get_candidates(genre_id, keyword)
         recommend_movie(telegram_id, query, context, exploit=True)
     elif 'bandit_explore' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_n_candidates(context, genre_id, None)
+        context.user_data['candidates'] = get_candidates(genre_id, None)
         recommend_movie(telegram_id, query, context, exploit=False)
 
 

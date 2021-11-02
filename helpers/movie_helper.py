@@ -2,6 +2,8 @@ import requests
 import datetime
 
 from config import DefaultConfig
+from database import get_movies
+from helpers.keywords import keywords_unique
 
 CONFIG = DefaultConfig()
 
@@ -99,6 +101,17 @@ def get_one_movie_resource_en(movie_num, page=1):
     return response.json()
 
 
+def get_movie_keywords(tmdb_id):
+    keywords = []
+    url = f"{CONFIG.TMDB_URL}movie/{str(tmdb_id)}/keywords?api_key={CONFIG.TMDB_KEY}"
+    response = requests.get(url).json()
+    for keyword in response.get('keywords'):
+        keyword_id = int(keyword['id'])
+        if keyword_id in keywords_unique:
+            keywords.append(f'k{keyword_id}')
+    return '|'.join(keywords)
+
+
 def get_similar_resources(movie_id):
     return get_movies_resource(movie_id, '/similar')
 
@@ -164,18 +177,11 @@ def discover(genres, keywords, page=1):
     return response
 
 
-def add_candidates(genre, keywords, candidates, index):
-    for movie in discover(genre, keywords, index):
-        if movie.get('overview'):
-            candidates[movie.get('id')] = movie
-
-
-def get_n_candidates(context, genre, keyword, n=BANDIT_N_LIST):
-    candidates = dict()
-    # TODO: If short than 10 get more movies, if not show we do not have options
-    for index in range(1, n + 1):
-        add_candidates(genre, keyword, candidates, index)
-        context.user_data['next_index'] = index + 1
+def get_candidates(genre, keyword):
+    candidates = {}
+    movies = get_movies(genre, keyword, 100)
+    for movie in movies:
+        candidates[movie.get('_id')] = movie
     return candidates
 
 
