@@ -51,12 +51,12 @@ def get_movie_card_data(movie, extra=True):
 
 def update_movie_info(movie):
     movie = update_movie_image_path(movie)
-    movie = convert_movie_dates(movie)
+    # movie = convert_movie_dates(movie)
     return movie
 
 
 def get_movie_card_extra(movie):
-    movie_id = movie.get('id')
+    movie_id = movie.get('_id')
     backdrop = movie.get("backdrop_path")
     poster = movie.get("poster_path")
     trailer = get_trailer_url(movie_id)
@@ -144,7 +144,7 @@ def get_trailer_url(movie_id):
 
 
 def convert_movie_dates(movie):
-    if len(movie['release_date']) > 4:
+    if len(str(movie['release_date'])) > 4:
         date_time_obj = datetime.datetime.strptime(movie['release_date'], '%Y-%m-%d')
         movie['release_date'] = date_time_obj.strftime('%Y')
     return movie

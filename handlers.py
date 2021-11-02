@@ -158,6 +158,7 @@ def recommend_movie(telegram_id, query, context, exploit=True):
     if len(candidates) < 1:
         query.edit_message_text(text=f'\U0001F603 Desculpe! Não temos recommendações no momento.'
                                      f'\nDigite /filme para informar novos parâmetros.')
+        return
 
     context_ids = get_context_ids(telegram_id)
     context_binarized = binarize_context(context_ids)
@@ -190,7 +191,7 @@ def feedback_answer(update: Update, context: CallbackContext):
     context_to_predict = context.user_data.get('context_to_predict') or []
 
     # Experiment result to save on DB
-    movie_id = recommended['_id']
+    movie_id = recommended['id']
     movie_title = recommended['title']
     state = recommended['state']
     genre_id = context.user_data.get('iterative').get('genre')

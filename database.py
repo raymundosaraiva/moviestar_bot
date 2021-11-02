@@ -19,7 +19,7 @@ def get_movies(genre, keyword, n):
     query = {'genres': {'$regex': genre}}
     if keyword:
         query = {'genres': {'$regex': genre}, 'keywords': {'$regex': f'k{str(keyword)}'}}
-    return movies.find(query).sort("popularity").limit(n)
+    return list(movies.find(query).sort("popularity").limit(n))
 
 
 def has_user(telegram_id):
