@@ -131,19 +131,18 @@ def keyword_answer(update: Update, context: CallbackContext):
     genre = context.user_data.get('iterative').get('genre')
     telegram_id = update.effective_user.id
     context.user_data['candidates'] = None
-    context.user_data['candidates'] = get_candidates(genre, keyword)
+    context.user_data['candidates'] = get_candidates(telegram_id, genre, keyword)
     recommend_movie(telegram_id, query, context, True)
 
 
-def remove_recommended(telegram_id, candidates):
-    for recommended in get_recommended(telegram_id):
-        if recommended in candidates:
-            candidates.pop(recommended)
-
-
-def get_candidate_from_context(candidates, context_to_predict, exploit):
+def get_candidate_from_context(candidates, user_context, exploit):
     actions = list(candidates)
-    X_context, y_context, r_context = get_all_context_binarized(actions)
+    context_to_predict = [1] * len(user_context)
+    if len(user_context) == 0:
+        exploit = False
+    X_context, y_context, r_context = [], [], []
+    if exploit:
+        X_context, y_context, r_context = get_all_context_binarized(actions, user_context)
     action = policy(actions, context_to_predict, X_context, y_context, r_context, exploit)
     state = 'no_context' if not X_context else ('exploit' if exploit else 'explore')
     return candidates[action], state
@@ -151,20 +150,18 @@ def get_candidate_from_context(candidates, context_to_predict, exploit):
 
 def recommend_movie(telegram_id, query, context, exploit=True):
     candidates = context.user_data.get('candidates')
-    remove_recommended(telegram_id, candidates)
     # TODO: If candidates < n discover more candidates
     candidates_id = list(candidates)
 
     if len(candidates) < 1:
         query.edit_message_text(text=f'\U0001F603 Desculpe! Não temos recommendações no momento.'
-                                     f'\nDigite /filme para informar novos parâmetros.')
+                                     f'\nDigite /start para informar novos parâmetros.')
         return
 
     context_ids = get_context_ids(telegram_id)
-    context_binarized = binarize_context(context_ids)
     context.user_data['context_to_predict'] = context_ids
 
-    movie_bandit, state = get_candidate_from_context(candidates, context_binarized, exploit)
+    movie_bandit, state = get_candidate_from_context(candidates, context_ids, exploit)
     label = candidates_id.index(movie_bandit.get('_id'))
 
     query.edit_message_text(text=f'{movie_card(movie_bandit)}'
@@ -214,7 +211,7 @@ def feedback_answer(update: Update, context: CallbackContext):
     context.user_data['recommended'] = None
     # Get feedback in each 5 interactions
     if get_recommended_count(telegram_id) % 5 == 0:
-        query.edit_message_text('Você ficou satisfeito com as primeiras recomendações?',
+        query.message.reply_text('Você ficou satisfeito com as primeiras recomendações?',
                                 reply_markup=InlineKeyboardMarkup([
                                     [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_1_yes'),
                                      InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_1_no')]
@@ -243,11 +240,11 @@ def bandit_answer(update: Update, context: CallbackContext):
     keyword = context.user_data.get('iterative').get('keyword')
     if 'bandit_exploit' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_candidates(genre_id, keyword)
+        context.user_data['candidates'] = get_candidates(telegram_id, genre_id, keyword)
         recommend_movie(telegram_id, query, context, exploit=True)
     elif 'bandit_explore' in query.data:
         context.user_data['candidates'] = None
-        context.user_data['candidates'] = get_candidates(genre_id, None)
+        context.user_data['candidates'] = get_candidates(telegram_id, genre_id, None)
         recommend_movie(telegram_id, query, context, exploit=False)
 
 

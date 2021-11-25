@@ -14,12 +14,12 @@ def save_movie(movie):
     movies.update(key, movie, upsert=True)
 
 
-def get_movies(genre, keyword, n):
+def get_movies(genre, keyword):
     movies = db.movies
     query = {'genres': {'$regex': genre}}
     if keyword:
         query = {'genres': {'$regex': genre}, 'keywords': {'$regex': f'k{str(keyword)}'}}
-    return list(movies.find(query).sort("popularity").limit(n))
+    return list(movies.find(query).sort("popularity"))
 
 
 def has_user(telegram_id):
@@ -116,21 +116,18 @@ def get_context_ids(telegram_id):
     return users.find_one({'telegram_id': telegram_id}).get('selected') or []
 
 
-def binarize_context(context_ids):
-    rounds = db.rounds
-    selected_all = [_round.get('selected') for _round in rounds.find()]
-    context = [1 if i in context_ids else 0 for i in selected_all]
-    return context
+def binarize_context(context_ids, context_to_predict):
+    return [1 if i in context_ids else 0 for i in context_to_predict]
 
 
-def get_all_context_binarized(candidates):
+def get_all_context_binarized(candidates, context_to_predict):
     rounds = db.rounds
+    results = rounds.find({'selected': {'$in': candidates}})
     X, y, r = [], [], []
-    for _round in rounds.find():
-        if _round.get('selected') in candidates:
-            X.append(binarize_context(_round.get('context')))
-            y.append(candidates.index(_round.get('selected')))
-            r.append(_round.get('reward'))
+    for _round in results:
+        X.append(binarize_context(_round.get('context'), context_to_predict))
+        y.append(candidates.index(_round.get('selected')))
+        r.append(_round.get('reward'))
     return X, y, r
 
 

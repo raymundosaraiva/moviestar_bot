@@ -4,15 +4,11 @@ import threading
 from database import save_round
 
 
-def process_reviews():
-    movies = pd.read_csv("../movie_data/movie_details_complete.csv", lineterminator='\n')
-
-
 def get_tmdb_ids():
-    movies = pd.read_csv("../movie_data/movie_details_after_2000.csv", lineterminator='\n')
+    movies = pd.read_csv("../movie_data/movies_in_2016.csv", lineterminator='\n')
     map_dict = dict(zip(movies['movieId'], movies['tmdbId']))
 
-    reviews = pd.read_csv("../movie_data/ratings_complete.csv")
+    reviews = pd.read_csv("../movie_data/reviews_movies_in_2016.csv")
     users = reviews.groupby(reviews.userId)
     user_ids = reviews[['userId']].drop_duplicates()
 
@@ -71,9 +67,25 @@ def remove_deleted_movies():
     reviews.to_csv("../movie_data/ratings_complete.csv", index=False)
 
 
+def get_reviews_by_movie_year(year):
+    reviews = pd.read_csv("../movie_data/ratings_after_2010.csv",
+                          dtype={'userId': str, 'movieId': int, 'rating': str, 'timestamp': int})
+
+    movies = pd.read_csv("../movie_data/movie_details_after_2000.csv", lineterminator='\n',
+                         dtype={'release_date': int, 'movieId': int})
+
+    movies_by_year = movies[movies['release_date'] == year]
+
+    reviews_by_year = reviews[reviews['movieId'].isin(movies_by_year['movieId'])]
+
+    reviews_by_year.to_csv(f"../movie_data/reviews_movies_in_{year}.csv", index=False)
+    movies_by_year.to_csv(f"../movie_data/movies_in_{year}.csv", index=False)
+
+
 if __name__ == "__main__":
     try:
         get_tmdb_ids()
+        # get_reviews_by_movie_year(2016)
         pass
     except Exception as error:
         raise error

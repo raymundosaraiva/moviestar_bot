@@ -146,7 +146,8 @@ def run_parallel():
 
 
 def load_movies_to_db():
-    movies_df = pd.read_csv("../movie_data/movie_details_1.csv", lineterminator='\n', dtype=str)
+    movies_df = pd.read_csv("../movie_details/movies_2016_keywords.csv", lineterminator='\n',
+                            dtype={'tmdbId': int, 'release_date': int, 'movieId': str,}, keep_default_na=False)
     movies_df = movies_df.rename(columns={'tmdbId': '_id', 'movieId': 'ml_id'})
     movies_dict = movies_df.to_dict('records')
     for movie in movies_dict:
@@ -156,7 +157,7 @@ def load_movies_to_db():
 
 if __name__ == "__main__":
     try:
-        merge_links_movies()
+        load_movies_to_db()
         # check_missing_movies()
         # get_missing()
         # run_parallel()

@@ -2,7 +2,7 @@ import requests
 import datetime
 
 from config import DefaultConfig
-from database import get_movies
+from database import get_movies, get_recommended
 from helpers.keywords import keywords_unique
 from helpers.genres import genres
 
@@ -178,12 +178,15 @@ def discover(genres, keywords, page=1):
     return response
 
 
-def get_candidates(genre, keyword):
+def get_candidates(telegram_id, genre, keyword):
     candidates = {}
+    selected = get_recommended(telegram_id)
     genre_name = genres.get(int(genre))
-    movies = get_movies(genre_name, keyword, 100)
+    movies = get_movies(genre_name, keyword)
     for movie in movies:
-        candidates[movie.get('_id')] = movie
+        movie_id = movie.get('_id')
+        if movie_id not in selected and len(candidates) <= 100:
+            candidates[movie.get('_id')] = movie
     return candidates
 
 
