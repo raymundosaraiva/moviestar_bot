@@ -11,23 +11,6 @@ from context_bandit import policy
 from database import *
 
 
-def welcome(update):
-    update.message.reply_text(
-        '\U0001F3AC Bem vindo!'
-        '\n\nEste é um experimento controlado.'
-        '\n\nDesenvolvido para um projeto de mestrado da USP '
-        'com o intuito de avaliar um modelo de recomendação de filmes em tempo real.'
-        '\n\n Os seus dados não serão expostos e tem uso apenas nesta pesquisa.'
-        '\n\n Ao selecionar a opção "Desejo participar" você concorda com os nossos termos e deve:'
-        '\n  - Informar seu sexo e faixa etária;'
-        '\n  - Receber no mínimo 5 recomendações;'
-        '\n  - Avaliar todas as recomendações;'
-        '\n  - Responder sobre a sua satisfação final.'
-        '\n\n Obrigado desde já pela participação',
-        reply_markup=consent_markup, parse_mode=ParseMode.HTML
-    )
-
-
 def genre_buttons_edit(option, reply=False):
     if reply:
         option.edit_message_text(
@@ -39,68 +22,6 @@ def genre_buttons_edit(option, reply=False):
             'Escolha um gênero abaixo',
             reply_markup=genre_markup
         )
-
-
-def age_buttons_edit(option, reply=False):
-    if reply:
-        option.edit_message_text(
-            'Qual a sua faixa etária?',
-            reply_markup=age_markup
-        )
-    else:
-        option.message.reply_text(
-            'Qual a sua faixa etária?',
-            reply_markup=age_markup
-        )
-
-
-def sex_buttons_edit(option, reply=False):
-    if reply:
-        option.edit_message_text(
-            'Qual o seu sexo?',
-            reply_markup=sex_markup
-        )
-    else:
-        option.message.reply_text(
-            'Qual o seu sexo?',
-            reply_markup=sex_markup
-        )
-
-
-def consent_answer(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    consent_code = get_code(query.data)
-    telegram_id = update.effective_user.id
-    save_user_info(telegram_id, 'consent', consent_code)
-    if consent_code == 'agree':
-        sex_buttons_edit(query, True)
-    else:
-        update.message.reply_text(
-            ':( Entendemos que você não concorda em participar no momento.'
-            '\nCaso mude de ideia basta digitar /start'
-        )
-
-
-def sex_answer(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    sex_code = get_code(query.data)
-    telegram_id = update.effective_user.id
-    save_user_info(telegram_id, 'sex', sex_code)
-    if not user_has_info(telegram_id, 'age'):
-        age_buttons_edit(query, True)
-    else:
-        genre_buttons_edit(query, True)
-
-
-def age_answer(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    age_code = get_code(query.data)
-    telegram_id = update.effective_user.id
-    save_user_info(telegram_id, 'age', age_code)
-    genre_buttons_edit(query, True)
 
 
 def genre_answer(update: Update, context: CallbackContext):
@@ -210,11 +131,11 @@ def feedback_answer(update: Update, context: CallbackContext):
 
     context.user_data['recommended'] = None
     # Get feedback in each 5 interactions
-    if get_recommended_count(telegram_id) % 5 == 0:
+    if get_recommended_count(telegram_id) % 1 == 0:
         query.message.reply_text('Você ficou satisfeito com as primeiras recomendações?',
                                 reply_markup=InlineKeyboardMarkup([
-                                    [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_1_yes'),
-                                     InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_1_no')]
+                                    [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_0_yes'),
+                                     InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_0_no')]
                                 ]))
     else:
         query.message.reply_text(text=f'\U0001F603 Obrigado pela sua avaliação!',
@@ -246,46 +167,3 @@ def bandit_answer(update: Update, context: CallbackContext):
         context.user_data['candidates'] = None
         context.user_data['candidates'] = get_candidates(telegram_id, genre_id, None)
         recommend_movie(telegram_id, query, context, exploit=False)
-
-
-def extra_questions(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    telegram_id = update.effective_user.id
-    data = query.data
-    resp = get_code(get_code(data))
-    if '_1_' in data:
-        save_response(telegram_id, '1', resp)
-        query.edit_message_text(
-            'Você sentiu diferença quando escolhia entre ter recommendações pelo histórico'
-            ' ou explorar recommendações diversificadas?',
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_2_yes'),
-                 InlineKeyboardButton(text='\U0001F44E Não', callback_data='extra_2_no')]
-            ]))
-    elif '_2_' in data:
-        save_response(telegram_id, '2', resp)
-        query.edit_message_text(
-            'Como você avalia as recomendações que tem recebido?',
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton('Estou Muito Satisfeito', callback_data='extra_3_5')],
-                [InlineKeyboardButton('Estou Satisfeito', callback_data='extra_3_4')],
-                [InlineKeyboardButton('Estou Pouco Satisfeito', callback_data='extra_3_3')],
-                [InlineKeyboardButton('Estou Insatisfeito', callback_data='extra_3_2')],
-                [InlineKeyboardButton('Estou Muito Insatisfeito', callback_data='extra_3_1')]
-            ])
-        )
-    elif '_3_' in data:
-        save_response(telegram_id, '3', int(resp))
-        query.edit_message_text(
-            'Você também deseja escrever uma avaliação?',
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text='\U0001F44E Não, podemos finalizar', callback_data='extra_4_no')],
-                [InlineKeyboardButton(text='\U0001F44D Sim, quero escrever', callback_data='extra_4_yes')]
-            ]))
-    elif '_4_' in data:
-        if 'no' == resp:
-            query.edit_message_text('Obrigado!\nCaso queira uma nova recomendação digite /start')
-        elif 'yes' == resp:
-            context.user_data['opinion'] = True
-            query.edit_message_text('Digite a sua avaliação, caso tenha desistido digite /start')

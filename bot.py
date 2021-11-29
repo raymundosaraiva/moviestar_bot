@@ -8,6 +8,7 @@ import os
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
 from commands import *
+from movie_handler import *
 from admin import users, experiments, responses, reviews, populate_db
 
 # Enable logging
@@ -18,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 def error(update, context):
-    telegram_id, name = (update.effective_user.id), (update.effective_user.first_name or '')
+    # telegram_id, name = (update.effective_user.id), (update.effective_user.first_name or '')
     # save_error(telegram_id, str(context.error))
     """Log Errors caused by Updates."""
-    logger.warning('Update on user %s caused error "%s"', telegram_id, context.error)
+    # logger.warning('Update on user %s caused error "%s"', telegram_id, context.error)
+    logger.warning('Error "%s"',  context.error)
     # update.callback_query.edit_message_text(
     #     '\n\U0001F622 Desculpe mas tivemos um erro! '
     #     '\nPressione /start para recomeçar...'

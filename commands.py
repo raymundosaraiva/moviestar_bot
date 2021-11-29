@@ -1,4 +1,4 @@
-from handlers import *
+from user_handler import *
 from database import *
 
 from wrappers import send_typing_action
@@ -37,7 +37,8 @@ def text(update, context):
     if context.user_data.get('opinion'):
         telegram_id, message = update.effective_user.id, update.message.text
         save_review(telegram_id, message)
-        update.message.reply_text('\U0001F603 Obrigado!\nCaso queira uma nova recomendação digite /start')
+        update.message.reply_text('\U0001F603 Obrigado pela sua participação!'
+                                  '\nCaso queira uma nova recomendação digite /start')
         context.user_data['opinion'] = None
     else:
         update.message.reply_text('\U0001F622 Desculpe!\nVocê deve iteragir nas opções informadas!'

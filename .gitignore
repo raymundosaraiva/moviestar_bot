@@ -136,3 +136,5 @@ dmypy.json
 
 # mac
 .DS_STORE
+movie_data/
+movie_details/
