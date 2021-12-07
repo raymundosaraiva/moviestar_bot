@@ -3,19 +3,35 @@ import threading
 
 from database import save_round
 
+movies = pd.read_csv("../data/movie_details_after_2010.csv", lineterminator='\n')
+ratings = pd.read_csv("../data/simple_ratings_after_2010.csv")
 
-def get_tmdb_ids():
-    movies = pd.read_csv("../movie_data/movies_in_2016.csv", lineterminator='\n')
-    map_dict = dict(zip(movies['movieId'], movies['tmdbId']))
+map_dict = dict(zip(movies['movieId'], movies['tmdbId']))
+users = ratings.groupby(ratings.userId)
+user_ids = ratings[['userId']].drop_duplicates()
+pass
 
-    reviews = pd.read_csv("../movie_data/reviews_movies_in_2016.csv")
-    users = reviews.groupby(reviews.userId)
-    user_ids = reviews[['userId']].drop_duplicates()
-
+def process_users():
     for idx, row in user_ids.iterrows():
-        user = users.get_group(row['userId'])
-        user_reviews = convert_user_data(user, map_dict)
-        add_user_round_to_db(user_reviews)
+        user_id = row['userId'].item()
+        process_user(user_id)
+        # threading.Thread(target=process_user, args=(user_id,)).start()
+
+
+def process_user(user_id):
+    print(f"User = {user_id}")
+    user = users.get_group(user_id)
+    user_reviews = convert_user_data(user, map_dict)
+    add_user_round_to_db(user_reviews)
+
+
+def filter_ratings_by_movies():
+    movies = pd.read_csv("../data/movie_details_after_2010.csv", lineterminator='\n')['movieId']
+    ratings = pd.read_csv("../movie_data/ratings_after_2010.csv",
+                          dtype={'userId': int, 'movieId': int, 'rating': float, 'timestamp': int})
+    # Only get ratings for selected movies
+    ratings = ratings[ratings['movieId'].isin(movies.tolist())]
+    ratings.to_csv("../data/simple_ratings_after_2010.csv", index=False)
 
 
 def convert_user_data(user, map_dict):
@@ -36,56 +52,8 @@ def add_user_round_to_db(user):
             user_context.append(selected)
 
 
-def get_movies_after(year=2000):
-    movies = pd.read_csv("../movie_data/movie_details_complete.csv", lineterminator='\n')
-    movies_2000 = movies[movies['release_date'] > year]
-    movies_2000.to_csv("../movie_data/movie_details_after_2000.csv", index=False)
-
-
-def get_movie_id():
-    links = pd.read_csv("../movie_data/links.csv", dtype=str)
-    by_tmdb = pd.read_csv("../movie_data/remove_by_tmdbId.csv", dtype=str)
-    movie_id = links.loc[links['tmdbId'].isin(by_tmdb['tmdbId'].tolist())]
-    movie_id = movie_id[['movieId']]
-    movie_id.to_csv("../movie_data/remove_by_movieId2.csv", index=False)
-
-
-def remove_deleted_movies():
-    reviews = pd.read_csv("../movie_data/ratings.csv",
-                          dtype={'userId': str, 'movieId': str, 'rating': str, 'timestamp': int})
-
-    by_id = pd.read_csv("../movie_data/remove_by_movieId.csv", dtype=str)
-    by_tmdb = pd.read_csv("../movie_data/remove_by_movieId2.csv", dtype=str)
-    removed = pd.concat([by_id, by_tmdb], ignore_index=True)
-    # Fri Jan 01 2010 00:00:00 GMT+0000 == 1262304000
-    reviews = reviews[~reviews['movieId'].isin(removed['movieId'].tolist())]
-    reviews = reviews[reviews['timestamp'] > 1262304000]
-
-    movies_2000 = pd.read_csv("../movie_data/movie_details_after_2000.csv", lineterminator='\n', dtype=str)
-    reviews = reviews[reviews['movieId'].isin(movies_2000['movieId'].tolist())]
-
-    reviews.to_csv("../movie_data/ratings_complete.csv", index=False)
-
-
-def get_reviews_by_movie_year(year):
-    reviews = pd.read_csv("../movie_data/ratings_after_2010.csv",
-                          dtype={'userId': str, 'movieId': int, 'rating': str, 'timestamp': int})
-
-    movies = pd.read_csv("../movie_data/movie_details_after_2000.csv", lineterminator='\n',
-                         dtype={'release_date': int, 'movieId': int})
-
-    movies_by_year = movies[movies['release_date'] == year]
-
-    reviews_by_year = reviews[reviews['movieId'].isin(movies_by_year['movieId'])]
-
-    reviews_by_year.to_csv(f"../movie_data/reviews_movies_in_{year}.csv", index=False)
-    movies_by_year.to_csv(f"../movie_data/movies_in_{year}.csv", index=False)
-
-
 if __name__ == "__main__":
     try:
-        get_tmdb_ids()
-        # get_reviews_by_movie_year(2016)
-        pass
+        process_users()
     except Exception as error:
         raise error

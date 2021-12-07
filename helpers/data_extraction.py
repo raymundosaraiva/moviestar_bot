@@ -2,7 +2,6 @@ import csv
 import pandas as pd
 import threading
 
-from database import save_movie
 from helpers.movie_helper import get_one_movie_resource_pt, get_one_movie_resource_en
 
 
@@ -145,20 +144,9 @@ def run_parallel():
         threading.Thread(target=get_movie_details, args=(start, end, file_seq)).start()
 
 
-def load_movies_to_db():
-    movies_df = pd.read_csv("../movie_details/movies_2016_keywords.csv", lineterminator='\n',
-                            dtype={'tmdbId': int, 'release_date': int, 'movieId': str,}, keep_default_na=False)
-    movies_df = movies_df.rename(columns={'tmdbId': '_id', 'movieId': 'ml_id'})
-    movies_dict = movies_df.to_dict('records')
-    for movie in movies_dict:
-        save_movie(movie)
-        print(f'Saved movie {movie["_id"]}')
-
-
 if __name__ == "__main__":
     try:
-        load_movies_to_db()
-        # check_missing_movies()
+        check_missing_movies()
         # get_missing()
         # run_parallel()
     except Exception as error:

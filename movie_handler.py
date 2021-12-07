@@ -75,7 +75,7 @@ def recommend_movie(telegram_id, query, context, exploit=True):
     candidates_id = list(candidates)
 
     if len(candidates) < 1:
-        query.edit_message_text(text=f'\U0001F603 Desculpe! Não temos recommendações no momento.'
+        query.edit_message_text(text=f'\U0001F603 Desculpe! Não temos recommendações para os parâmetros informados.'
                                      f'\nDigite /start para informar novos parâmetros.')
         return
 
@@ -131,7 +131,7 @@ def feedback_answer(update: Update, context: CallbackContext):
 
     context.user_data['recommended'] = None
     # Get feedback in each 5 interactions
-    if get_recommended_count(telegram_id) % 1 == 0:
+    if get_recommended_count(telegram_id) % 10 == 0:
         query.message.reply_text('Você ficou satisfeito com as primeiras recomendações?',
                                 reply_markup=InlineKeyboardMarkup([
                                     [InlineKeyboardButton(text='\U0001F44D Sim', callback_data='extra_0_yes'),
